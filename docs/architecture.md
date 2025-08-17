@@ -109,8 +109,87 @@ graph TD
 ---
 ## Data Models
 
+Below are the primary data models for the application.
+
+#### User Model
+| Field | Type | Description | Constraints |
+|---|---|---|---|
+| `ID` | `int64` | Unique identifier for the user. | Primary Key, Auto-increment |
+| `Username` | `string` | User's chosen username. | Required, Unique |
+| `Email` | `string` | User's email address. | Required, Unique |
+| `PasswordHash` | `string` | Hashed password for authentication. | Required |
+| `PasswordSalt` | `string` | Salt used for password hashing. | Required |
+| `CreatedAt` | `datetime` | Timestamp of user creation. | Required |
+| `UpdatedAt` | `datetime` | Timestamp of last user update. | Required |
+
+#### Coffee Model
+| Field | Type | Description | Constraints |
+|---|---|---|---|
+| `ID` | `int64` | Unique identifier for the coffee. | Primary Key, Auto-increment |
+| `Name` | `string` | The name of the coffee. | Required, Unique (per roaster) |
+| `Origin` | `string` | The origin country or region of the beans. | Optional |
+| `Roaster` | `string` | The company that roasted the coffee. | Optional |
+| `Description` | `text` | General description of the coffee's flavor profile from the roaster. | Optional |
+| `PhotoPath` | `string` | Path to a general photo of the coffee bag/beans. | Optional |
+| `CreatedAt` | `datetime` | Timestamp of coffee creation in the system. | Required |
+| `UpdatedAt` | `datetime` | Timestamp of last coffee update. | Required |
+
+#### BrewLog Model
+This model will store the details of each individual brewing session. The coffee-to-water ratio will be calculated from the `CoffeeWeight` and `WaterWeight` fields.
+
+| Field | Type | Description | Constraints |
+|---|---|---|---|
+| `ID` | `int64` | Unique identifier for the log entry. | Primary Key, Auto-increment |
+| `UserID` | `int64` | Foreign key to the `User` who created the log. | Required, Foreign Key to `User.ID` |
+| `CoffeeID` | `int64` | Foreign key to the `Coffee` being brewed. | Required, Foreign Key to `Coffee.ID` |
+| `BrewMethod` | `string` | The method used for this specific brew (e.g., "V60", "Aeropress"). | Required |
+| `CoffeeWeight` | `float` | Weight of the coffee in grams. | Optional |
+| `WaterWeight` | `float` | Weight of the water in grams. | Optional |
+| `GrindSize` | `string` | The grinder setting used (e.g., "Medium-Fine", "18"). | Optional |
+| `WaterTemperature` | `float` | The temperature of the water in Celsius or Fahrenheit. | Optional |
+| `BrewTime` | `int` | The total brew time in seconds. Will be displayed as mm:ss on the frontend. | Optional |
+| `TastingNotes` | `text` | Specific notes for this brew. | Optional |
+| `Rating` | `int` | User's rating for this specific brew (1-5). | Optional |
+| `CreatedAt` | `datetime` | Timestamp of log entry creation. | Required |
+
 ---
 ## API Specification
+
+All endpoints will be prefixed with `/api/v1`.
+
+#### User & Authentication Endpoints
+| Endpoint | Description | Request Body | Response Body | Auth Required |
+|---|---|---|---|---|
+| `POST /users` | Create a new user (Sign up). | `{ "username", "email", "password" }` | `{ "id", "username", "email", "createdAt" }` | No |
+| `POST /auth/login` | Authenticate a user and receive a token. | `{ "email", "password" }` | `{ "token" }` | No |
+| `GET /users/me` | Get the profile of the currently authenticated user. | | `{ "id", "username", "email" }` | Yes |
+| `PUT /users/me` | Update the authenticated user's profile. | `{ "username", "email" }` | `{ "id", "username", "email" }` | Yes |
+| `DELETE /users/me` | Delete the authenticated user's account. | | `204 No Content` | Yes |
+
+#### Coffee Endpoints
+These endpoints manage the canonical list of coffees.
+
+| Endpoint | Description | Request Body | Response Body | Auth Required |
+|---|---|---|---|---|
+| `POST /coffees` | Add a new coffee to the system. | `{ "name", "origin", "roaster", "description" }` | Full `Coffee` object | Yes |
+| `GET /coffees` | Get a paginated list of all coffees. | | `[ { "id", "name", ... } ]` | No |
+| `GET /coffees/{id}` | Get a single coffee by its ID. | | Full `Coffee` object | No |
+| `PUT /coffees/{id}` | Update a coffee's details. | `{ "name", "origin", ... }` | Full `Coffee` object | Yes (Admin?) |
+| `DELETE /coffees/{id}` | Delete a coffee from the system. | | `204 No Content` | Yes (Admin?) |
+
+*Note: For the MVP, any authenticated user can add a coffee. We may want to restrict PUT/DELETE to admins in the future.*
+
+#### BrewLog Endpoints
+These endpoints manage the logs created by users.
+
+| Endpoint | Description | Request Body | Response Body | Auth Required |
+|---|---|---|---|---|
+| `POST /brewlogs` | Create a new brew log for the authenticated user. | `{ "coffeeId", "brewMethod", "coffeeWeight", ... }` | Full `BrewLog` object | Yes |
+| `GET /brewlogs` | Get all brew logs for the authenticated user. | | `[ { "id", "coffeeId", ... } ]` | Yes |
+| `GET /brewlogs/{id}` | Get a single brew log by its ID. | | Full `BrewLog` object | Yes (Owner only) |
+| `PUT /brewlogs/{id}` | Update a brew log. | `{ "brewMethod", "coffeeWeight", ... }` | Full `BrewLog` object | Yes (Owner only) |
+| `DELETE /brewlogs/{id}` | Delete a brew log. | | `204 No Content` | Yes (Owner only) |
+| `GET /users/{userId}/brewlogs` | Get all brew logs for a specific user. | | `[ { "id", "coffeeId", ... } ]` | No |
 
 ---
 ## Components
