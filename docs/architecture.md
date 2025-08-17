@@ -194,8 +194,46 @@ These endpoints manage the logs created by users.
 ---
 ## Components
 
+This section breaks down the high-level components of the system.
+
+### Backend Components (Services)
+*   **UserService:** Handles user creation, profile management, and authentication logic.
+*   **CoffeeService:** Manages the master list of coffees (creating, updating, listing).
+*   **BrewLogService:** Handles the creation, retrieval, and management of user brew logs.
+*   **AuthService:** Manages JWT token generation and validation.
+
+### Frontend Components (Pages/Views)
+*   **HomePage:** The main landing page for authenticated users, possibly showing a dashboard of their recent brew logs.
+*   **LoginPage:** A page for users to log in.
+*   **SignUpPage:** A page for new users to register.
+*   **CoffeeListPage:** A view to browse and search all available coffees.
+*   **CoffeeDetailPage:** A view showing the details of a single coffee and all associated brew logs from the community.
+*   **BrewLogForm:** A form for creating and editing a brew log.
+*   **UserProfilePage:** A page for users to view and edit their profile.
+
 ---
 ## External APIs
+
+This section details the third-party APIs that our application will integrate with.
+
+#### AI Service (for Tasting Notes & Brewing Suggestions)
+
+We will integrate with external AI models to provide users with suggestions and insights. This will be handled by an `AIService` client in the backend, which will be designed with a provider-agnostic interface to allow for flexibility.
+
+**Supported Providers:**
+
+1.  **OpenAI ChatGPT**
+    *   **API Endpoint:** `https://api.openai.com/v1/chat/completions`
+    *   **Purpose:** To generate creative tasting notes, suggest brewing parameters, and provide interesting facts about a coffee's origin.
+    *   **Authentication:** API Key sent in the `Authorization` header.
+
+2.  **Google Gemini**
+    *   **API Endpoint:** `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent`
+    *   **Purpose:** Similar to OpenAI, it will be used to generate tasting notes and other coffee-related content.
+    *   **Authentication:** API Key sent as a query parameter.
+
+**Integration Strategy:**
+The backend's `AIService` will contain a common interface for interacting with these AI providers. The specific provider to be used for a given request can be determined by configuration or user choice. This approach allows us to easily add more providers in the future or switch between them as needed.
 
 ---
 ## Core Workflows
