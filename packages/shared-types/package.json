@@ -1,0 +1,27 @@
+{
+    "name": "@coffee-companion/shared-types",
+    "version": "1.0.0",
+    "description": "Shared TypeScript types for Coffee Companion",
+    "main": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "scripts": {
+        "build": "tsc",
+        "dev": "tsc --watch",
+        "clean": "rm -rf dist",
+        "test": "echo \"No tests specified\" && exit 0"
+    },
+    "devDependencies": {
+        "typescript": "^5.0.0"
+    },
+    "files": [
+        "dist"
+    ],
+    "keywords": [
+        "typescript",
+        "types",
+        "coffee",
+        "shared"
+    ],
+    "author": "Your Name",
+    "license": "MIT"
+}
