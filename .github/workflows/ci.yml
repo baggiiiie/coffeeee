@@ -1,0 +1,47 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22.x'
+
+      - name: Install Node dependencies
+        run: npm ci
+
+      - name: Lint frontend
+        run: npm run lint --workspace=apps/frontend
+
+      - name: Build frontend
+        run: npm run build --workspace=apps/frontend
+
+      - name: Backend build
+        run: |
+          cd apps/backend
+          go build ./...
+
+      - name: Backend tests
+        run: |
+          cd apps/backend
+          go test ./...
+
+      - name: Frontend tests
+        run: npm test --workspace=apps/frontend -- --run
+
