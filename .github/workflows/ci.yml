@@ -37,11 +37,35 @@ jobs:
           cd apps/backend
           go build ./...
 
-      - name: Backend tests (API scope)
+      - name: Install SQLite dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y sqlite3 libsqlite3-dev
+
+      - name: Backend tests (all packages)
         run: |
           cd apps/backend
-          # Limit to API packages to avoid unrelated migrate tests for Story 1.1 scope
-          go test ./internal/api/...
+          go test ./...
+
+      - name: Migration CLI smoke test
+        env:
+          DATABASE_MIGRATIONS_PATH: ./migrations
+        run: |
+          set -euo pipefail
+          cd apps/backend
+          TMPDIR=$(mktemp -d)
+          export DATABASE_URL="$TMPDIR/ci.db"
+          echo "Using DB: $DATABASE_URL"
+          go run cmd/migrate/main.go up
+          # Verify schema_migrations exists and users table exists after up
+          sqlite3 "$DATABASE_URL" "SELECT name FROM sqlite_master WHERE type='table' AND name IN ('schema_migrations','users');"
+          go run cmd/migrate/main.go down
+          # After down, users table should be gone (schema_migrations remains)
+          if sqlite3 "$DATABASE_URL" "SELECT COUNT(1) FROM sqlite_master WHERE type='table' AND name='users';" | grep -q '^0$'; then
+            echo "Users table dropped successfully"
+          else
+            echo "Users table still exists after down" && exit 1
+          fi
 
       - name: Frontend tests
         run: npm test --workspace=apps/frontend -- --run
