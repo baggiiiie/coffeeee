@@ -1,0 +1,42 @@
+schema: 1
+story: "1.1"
+story_title: "Project Setup & Hello World"
+created_by: "Quinn (Test Architect)"
+created_at: "2025-08-19T20:50:00Z"
+context:
+  gate: "CONCERNS"
+  reason: "Backend CI fails in migrate package; core AC implemented."
+
+tasks:
+  - id: QA-FU-001
+    title: "Stabilize backend CI for Story 1.1"
+    type: chore
+    owner: backend
+    priority: high
+    description: |
+      Ensure CI is green for the scope of Story 1.1. Until migrations are implemented per Story 1.2, limit backend tests in CI to API packages so `/health` and HTTP scaffolding remain validated without failing migrate tests.
+    acceptance:
+      - CI workflow runs backend build and tests for API packages only (handlers, routes, middleware)
+      - CI passes on clean main branch
+      - Document temporary scope note in workflow comments
+    suggested_changes:
+      - path: .github/workflows/ci.yml
+        note: Limit `go test` to `./internal/api/...` until migrations are complete
+
+  - id: QA-FU-002
+    title: "Migration runner compatibility and initial up/down scripts"
+    type: task
+    owner: backend
+    priority: medium
+    description: |
+      Align migration tooling with architecture. Provide proper `001_users_table.up.sql` and `001_users_table.down.sql`. Update the runner to robustly execute multi-statement SQL including triggers (don’t naïvely split on semicolons inside trigger bodies), or execute files as-is if driver allows. This work can be completed within Story 1.2.
+    acceptance:
+      - `migrate up` creates `users` table; `migrate down` drops it
+      - Tests pass for up/down cycle using temp SQLite DB
+      - CI runs full backend `go test ./...` without migrate failures
+    links:
+      - story: docs/stories/1.2.story.md
+
+notes:
+  - "HealthCheck timestamp is hardcoded; leave as-is for 1.1, revisit when adding diagnostics."
+
