@@ -106,10 +106,13 @@ func getEnvSlice(key string, defaultValue []string) []string {
 	if value := os.Getenv(key); value != "" {
 		// Simple comma-separated values
 		// In production, you might want more sophisticated parsing
-		parts := strings.Split(value, ",")
-		for i, part := range parts {
-			parts[i] = strings.TrimSpace(part)
-		}
+		rawParts := strings.Split(value, ",")
+		var parts []string
+		for _, part := range rawParts {
+			trimmed := strings.TrimSpace(part)
+			if trimmed != "" {
+				parts = append(parts, trimmed)
+			}
 		return parts
 	}
 	return defaultValue
