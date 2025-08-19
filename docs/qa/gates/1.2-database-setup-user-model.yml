@@ -1,0 +1,52 @@
+schema: 1
+story: "1.2"
+story_title: "Database Setup & User Model"
+gate: "FAIL"
+status_reason: "Migration runner naively splits SQL by ';', breaking SQLite trigger BEGIN...END blocks; 'up' fails with incomplete input, so apply/rollback not proven."
+reviewer: "Quinn (Test Architect)"
+updated: "2025-08-19T21:15:00Z"
+
+top_issues:
+  - id: "DBMIG-001"
+    severity: high
+    finding: "Up migration fails due to naive SQL splitting; CREATE TRIGGER requires atomic BEGIN...END."
+    suggested_action: "Execute scripts without naive splitting for sqlite3 or implement a parser that respects BEGIN...END/comments/strings. Add tests for triggers."
+  - id: "MIG-STRUCT-001"
+    severity: low
+    finding: "Stray '001_initial_schema.sql' alongside .up/.down files can confuse conventions."
+    suggested_action: "Remove or convert to versioned up/down files to keep a single convention."
+
+risk_summary:
+  totals: { critical: 0, high: 1, medium: 0, low: 1 }
+  recommendations:
+    must_fix:
+      - "Fix migration runner splitting and re-run tests to validate AC4."
+    monitor:
+      - "Normalize migrations naming to avoid drift."
+
+nfr_validation:
+  security:
+    status: PASS
+    notes: "No security features introduced in this story."
+  performance:
+    status: PASS
+    notes: "SQLite runner overhead minimal; no performance impact."
+  reliability:
+    status: FAIL
+    notes: "Runner cannot apply trigger-containing migrations; breaks reliability of schema management."
+  maintainability:
+    status: CONCERNS
+    notes: "Naive splitter is brittle; add tests and robust parsing to reduce future breakage."
+
+quality_score: 60
+expires: "2025-09-02T00:00:00Z"
+
+evidence:
+  tests_reviewed: 2
+  risks_identified: 2
+  trace:
+    ac_covered: [1, 2, 3]
+    ac_gaps: [4]
+
+waiver: { active: false }
+

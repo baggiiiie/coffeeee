@@ -1,0 +1,56 @@
+schema: 1
+story: "1.2"
+story_title: "Database Setup & User Model"
+created_by: "Quinn (Test Architect)"
+created_at: "2025-08-19T21:18:00Z"
+context:
+  gate: "FAIL"
+  reason: "Up migration fails due to naive SQL splitting that breaks SQLite trigger BEGIN...END blocks. AC4 not met."
+
+tasks:
+  - id: QA-FU-003
+    title: "Fix migration runner to support triggers"
+    type: task
+    owner: backend
+    priority: high
+    description: |
+      Update exec strategy to avoid naive `;` splitting. Options:
+      1) Execute full script text per file via sqlite3 driver; or
+      2) Implement a parser that respects BEGIN...END, strings, and comments.
+      Add regression tests with a CREATE TRIGGER.
+    acceptance:
+      - `ApplyUpToLatest` succeeds on `001_users_table.up.sql` containing a trigger
+      - `ApplyDownOne` reverts cleanly
+      - `internal/migrate` tests pass locally and in CI
+    links:
+      - path: apps/backend/internal/migrate/runner.go
+
+  - id: QA-FU-004
+    title: "Normalize migrations naming and remove stray file"
+    type: chore
+    owner: backend
+    priority: medium
+    description: |
+      Use a single convention: `.up.sql`/`.down.sql`. Remove or convert `001_initial_schema.sql` to avoid ambiguity with versioned files.
+    acceptance:
+      - No non-suffixed migration files remain
+      - Discovery pairs up/down correctly and tests pass
+    links:
+      - path: apps/backend/migrations/001_initial_schema.sql
+
+  - id: QA-FU-005
+    title: "README migration usage section"
+    type: docs
+    owner: backend
+    priority: low
+    description: |
+      Ensure README includes commands and environment variables for running migrations (DATABASE_URL, DATABASE_MIGRATIONS_PATH) and examples for `migrate up/down/to` and Makefile targets.
+    acceptance:
+      - README section exists with commands
+      - Paths reflect `internal/config` defaults
+    links:
+      - path: README.md
+
+notes:
+  - "After runner fix, re-evaluate gate for 1.2 and likely move to PASS."
+
