@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/joho/godotenv"
 )
@@ -105,7 +106,11 @@ func getEnvSlice(key string, defaultValue []string) []string {
 	if value := os.Getenv(key); value != "" {
 		// Simple comma-separated values
 		// In production, you might want more sophisticated parsing
-		return []string{value}
+		parts := strings.Split(value, ",")
+		for i, part := range parts {
+			parts[i] = strings.TrimSpace(part)
+		}
+		return parts
 	}
 	return defaultValue
 }
