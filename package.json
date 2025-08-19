@@ -21,16 +21,9 @@
         "db:seed": "cd apps/backend && go run cmd/seed/main.go"
     },
     "devDependencies": {
-        "@eslint/css": "^0.10.0",
-        "@eslint/js": "^9.33.0",
-        "@eslint/json": "^0.13.1",
         "concurrently": "^8.2.2",
-        "eslint": "^8.57.1",
-        "eslint-plugin-react": "^7.37.5",
-        "globals": "^16.3.0",
         "husky": "^8.0.3",
-        "lint-staged": "^15.2.0",
-        "typescript-eslint": "^8.40.0"
+        "lint-staged": "^15.2.0"
     },
     "engines": {
         "node": ">=18.0.0",
