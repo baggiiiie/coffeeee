@@ -1,0 +1,28 @@
+schema: 1
+story: "1.1"
+story_title: "Project Setup & Hello World"
+gate: "CONCERNS"
+status_reason: "Backend CI includes failing migrate tests; core AC implemented, frontend tests pass, /health implemented and verified."
+reviewer: "Quinn (Test Architect)"
+updated: "2025-08-19T20:48:00Z"
+
+waiver: { active: false }
+
+top_issues:
+  - id: "TEST-001"
+    severity: medium
+    finding: "Backend `go test ./...` fails in migrate package due to naive SQL splitting and missing down migration."
+    suggested_action: "Add proper 001_initial_schema.up.sql/down.sql and update runner to handle statements with internal semicolons (e.g., triggers), or scope CI tests to API packages until migrations are implemented."
+  - id: "API-001"
+    severity: low
+    finding: "HealthCheck uses hardcoded timestamp."
+    suggested_action: "Use current time or omit until needed."
+
+risk_summary:
+  totals: { critical: 0, high: 0, medium: 1, low: 1 }
+  recommendations:
+    must_fix:
+      - "Stabilize backend CI by fixing migrate tests or scoping test run."
+    monitor:
+      - "Refine health payload semantics later; keep handler minimal."
+
