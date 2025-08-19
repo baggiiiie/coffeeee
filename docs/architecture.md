@@ -689,7 +689,7 @@ type Config struct {
 - Data seeding for development
 
 ---
-## Unified Project Structure
+## Source Tree
 
 ### Monorepo Organization
 
