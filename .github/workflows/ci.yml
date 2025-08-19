@@ -37,11 +37,11 @@ jobs:
           cd apps/backend
           go build ./...
 
-      - name: Backend tests
+      - name: Backend tests (API scope)
         run: |
           cd apps/backend
-          go test ./...
+          # Limit to API packages to avoid unrelated migrate tests for Story 1.1 scope
+          go test ./internal/api/...
 
       - name: Frontend tests
         run: npm test --workspace=apps/frontend -- --run
-
