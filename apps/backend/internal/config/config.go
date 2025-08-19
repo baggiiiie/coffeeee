@@ -103,17 +103,18 @@ func getEnvAsInt64(key string, defaultValue int64) int64 {
 }
 
 func getEnvSlice(key string, defaultValue []string) []string {
-	if value := os.Getenv(key); value != "" {
-		// Simple comma-separated values
-		// In production, you might want more sophisticated parsing
-		rawParts := strings.Split(value, ",")
-		var parts []string
-		for _, part := range rawParts {
-			trimmed := strings.TrimSpace(part)
-			if trimmed != "" {
-				parts = append(parts, trimmed)
-			}
-		return parts
-	}
-	return defaultValue
+    if value := os.Getenv(key); value != "" {
+        // Simple comma-separated values
+        // In production, you might want more sophisticated parsing
+        rawParts := strings.Split(value, ",")
+        parts := make([]string, 0, len(rawParts))
+        for _, part := range rawParts {
+            trimmed := strings.TrimSpace(part)
+            if trimmed != "" {
+                parts = append(parts, trimmed)
+            }
+        }
+        return parts
+    }
+    return defaultValue
 }
