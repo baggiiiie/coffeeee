@@ -12,7 +12,7 @@
         "dev:frontend": "npm run dev --workspace=apps/frontend",
         "dev:backend": "npm run dev --workspace=apps/backend",
         "build": "npm run build --workspaces",
-        "test": "npm run test --workspaces",
+        "test": "CI=true npm run test --workspaces",
         "lint": "npm run lint --workspaces",
         "lint:fix": "npm run lint:fix --workspaces",
         "clean": "npm run clean --workspaces",

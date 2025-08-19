@@ -96,7 +96,7 @@ coffee-companion/
   ],
   "scripts": {
     "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
-    "dev:frontend": "npm run dev --workspace=apps/frontend",
+    "dev:frontend": "npm test '--workspace=apps/frontend' -- --run --silent",
     "dev:backend": "npm run dev --workspace=apps/backend",
     "build": "npm run build --workspaces",
     "test": "npm run test --workspaces",
