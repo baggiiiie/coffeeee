@@ -10,7 +10,9 @@ help:
 	@echo "frontend    - Start frontend development server only"
 	@echo "test        - Run all tests"
 	@echo "clean       - Clean build artifacts"
-	@echo "db-setup    - Setup database and run migrations"
+	@echo "db-setup    - Setup database (legacy one-off)"
+	@echo "db-migrate-up   - Apply all pending DB migrations"
+	@echo "db-migrate-down - Revert the latest DB migration"
 
 # Install dependencies
 install:
@@ -59,6 +61,15 @@ clean:
 db-setup:
 	@echo "Setting up database..."
 	cd apps/backend && go run cmd/setup/main.go
+
+# Migration commands
+db-migrate-up:
+	@echo "Applying database migrations..."
+	cd apps/backend && go run cmd/migrate/main.go up
+
+db-migrate-down:
+	@echo "Reverting latest database migration..."
+	cd apps/backend && go run cmd/migrate/main.go down
 
 # Build for production
 build:

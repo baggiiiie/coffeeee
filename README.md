@@ -43,11 +43,16 @@ cp .env.example .env
 # Edit .env with your configuration
 ```
 
-### 4. Initialize database
+### 4. Initialize database and run migrations
 ```bash
-npm run db:setup
-npm run db:migrate
-npm run db:seed
+# One-off legacy setup (optional)
+make db-setup
+
+# Apply migrations to latest
+make db-migrate-up
+
+# Roll back the latest migration (if needed)
+make db-migrate-down
 ```
 
 ### 5. Start development servers
