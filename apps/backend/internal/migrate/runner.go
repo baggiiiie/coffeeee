@@ -9,7 +9,6 @@ import (
     "path/filepath"
     "regexp"
     "sort"
-    "strings"
     "time"
 )
 
@@ -177,28 +176,16 @@ func execSQLFile(db *sql.DB, path string) error {
     b, err := os.ReadFile(path)
     if err != nil { return err }
     sqlText := string(b)
-    // Split on semicolons to avoid driver limitations with multiple statements
-    stmts := splitSQLStatements(sqlText)
+    // Execute the entire script atomically. The sqlite3 driver supports
+    // multiple statements in a single Exec call, and this avoids issues
+    // with triggers that contain BEGIN...END blocks.
     tx, err := db.Begin()
     if err != nil { return err }
-    for _, s := range stmts {
-        if strings.TrimSpace(s) == "" { continue }
-        if _, err := tx.Exec(s); err != nil {
-            _ = tx.Rollback()
-            return err
-        }
+    if _, err := tx.Exec(sqlText); err != nil {
+        _ = tx.Rollback()
+        return err
     }
     return tx.Commit()
-}
-
-func splitSQLStatements(sqlText string) []string {
-    // naive split by semicolon; good enough for our simple migrations
-    parts := strings.Split(sqlText, ";")
-    out := make([]string, 0, len(parts))
-    for _, p := range parts {
-        out = append(out, p)
-    }
-    return out
 }
 
 func atoi(s string) (int, error) {
@@ -209,4 +196,3 @@ func atoi(s string) (int, error) {
     }
     return n, nil
 }
-
