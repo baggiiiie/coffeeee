@@ -1,19 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react'
-
-// Local type definitions (will be replaced with shared-types later)
-interface User {
-    id: number;
-    username: string;
-    email: string;
-    createdAt: string;
-    updatedAt: string;
-}
-
-interface CreateUserRequest {
-    username: string;
-    email: string;
-    password: string;
-}
+import { User, CreateUserRequest, LoginRequest, LoginResponse } from '@coffee-companion/shared-types'
 
 interface AuthContextType {
     user: User | null
@@ -38,6 +24,8 @@ interface AuthProviderProps {
     children: ReactNode
 }
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'
+
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const [user, setUser] = useState<User | null>(null)
     const [token, setToken] = useState<string | null>(null)
@@ -55,24 +43,29 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     const login = async (email: string, password: string) => {
         try {
-            // TODO: Implement actual API call
-            console.log('Login attempt:', { email, password })
+            const loginRequest: LoginRequest = { email, password }
+            
+            const response = await fetch(`${API_BASE_URL}/api/v1/auth/login`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(loginRequest),
+            })
 
-            // Mock successful login
-            const mockUser: User = {
-                id: 1,
-                username: 'testuser',
-                email: email,
-                createdAt: new Date().toISOString(),
-                updatedAt: new Date().toISOString(),
+            if (!response.ok) {
+                if (response.status === 401) {
+                    throw new Error('Invalid email or password')
+                }
+                throw new Error('Login failed')
             }
 
-            const mockToken = 'mock-jwt-token'
-
-            setUser(mockUser)
-            setToken(mockToken)
+            const loginResponse: LoginResponse = await response.json()
+            
+            setUser(loginResponse.user)
+            setToken(loginResponse.token)
             setIsAuthenticated(true)
-            localStorage.setItem('token', mockToken)
+            localStorage.setItem('token', loginResponse.token)
         } catch (error) {
             console.error('Login failed:', error)
             throw error
@@ -88,24 +81,26 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     const register = async (userData: CreateUserRequest) => {
         try {
-            // TODO: Implement actual API call
-            console.log('Register attempt:', userData)
+            const response = await fetch(`${API_BASE_URL}/api/v1/users`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(userData),
+            })
 
-            // Mock successful registration
-            const mockUser: User = {
-                id: 1,
-                username: userData.username,
-                email: userData.email,
-                createdAt: new Date().toISOString(),
-                updatedAt: new Date().toISOString(),
+            if (!response.ok) {
+                if (response.status === 409) {
+                    throw new Error('Email already in use')
+                }
+                throw new Error('Registration failed')
             }
 
-            const mockToken = 'mock-jwt-token'
-
-            setUser(mockUser)
-            setToken(mockToken)
-            setIsAuthenticated(true)
-            localStorage.setItem('token', mockToken)
+            const user: User = await response.json()
+            
+            // For registration, we'll need to log in the user after successful registration
+            // This is a simplified approach - in a real app, you might want to handle this differently
+            await login(userData.email, userData.password)
         } catch (error) {
             console.error('Registration failed:', error)
             throw error
