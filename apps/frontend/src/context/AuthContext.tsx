@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { User, CreateUserRequest, LoginRequest, LoginResponse } from '@coffee-companion/shared-types'
+import { User, CreateUserRequest, LoginRequest, LoginResponse, UpdateUserRequest } from '@coffee-companion/shared-types'
 import api, { resetLogoutGuard } from '../utils/api'
 import { Snackbar, Alert } from '@mui/material'
 
@@ -12,6 +12,7 @@ interface AuthContextType {
     login: (email: string, password: string) => Promise<void>
     logout: (opts?: { reason?: 'token-expired' | 'manual' }) => void
     register: (userData: CreateUserRequest) => Promise<void>
+    updateProfile: (profileData: UpdateUserRequest) => Promise<User>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -149,6 +150,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         }
     }
 
+    const updateProfile = async (profileData: UpdateUserRequest) => {
+        const response = await api.put('/api/v1/users/me', profileData)
+        const updated: User = response.data
+        setUser(updated)
+        return updated
+    }
+
     const value: AuthContextType = {
         user,
         token,
@@ -157,6 +165,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         login,
         logout,
         register,
+        updateProfile,
     }
 
     return (
