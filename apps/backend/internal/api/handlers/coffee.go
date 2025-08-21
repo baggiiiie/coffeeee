@@ -1,16 +1,17 @@
 package handlers
 
 import (
-    "coffee-companion/backend/internal/api/middleware"
-    "coffee-companion/backend/internal/config"
-    "database/sql"
-    "encoding/json"
-    "errors"
-    "net/http"
-    "strings"
-    "time"
+	"coffee-companion/backend/internal/api/middleware"
+	"coffee-companion/backend/internal/config"
+	"database/sql"
+	"encoding/json"
+	"errors"
+	"net/http"
+	"strings"
+	"time"
+	"log"
 
-    "github.com/mattn/go-sqlite3"
+	"github.com/mattn/go-sqlite3"
 )
 
 type CoffeeHandler struct {
@@ -178,9 +179,11 @@ func (h *CoffeeHandler) CreateForMe(w http.ResponseWriter, r *http.Request) {
             _ = tx.QueryRow(`SELECT id FROM user_coffees WHERE user_id = ? AND coffee_id = ?`, userID, coffeeID).Scan(&linkID)
         } else {
             w.WriteHeader(http.StatusInternalServerError)
+			errMessage := "failed to link user to coffee"
+			log.Printf("%s: %s", errMessage, err)
             _ = json.NewEncoder(w).Encode(map[string]string{
                 "code":    "DATABASE_ERROR",
-                "message": "failed to link user to coffee",
+                "message": errMessage,
             })
             return
         }
