@@ -1,10 +1,11 @@
 package utils
 
 import (
-	"fmt"
-	"time"
+    "fmt"
+    "strconv"
+    "time"
 
-	"github.com/golang-jwt/jwt/v5"
+    "github.com/golang-jwt/jwt/v5"
 )
 
 type Claims struct {
@@ -35,20 +36,40 @@ func GenerateToken(userID int64, email, username, secret string, expiry time.Dur
 
 // ValidateToken validates a JWT token and returns the claims
 func ValidateToken(tokenString, secret string) (*Claims, error) {
-	token, err := jwt.ParseWithClaims(tokenString, &Claims{}, func(token *jwt.Token) (interface{}, error) {
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
-		}
-		return []byte(secret), nil
-	})
+    return ValidateTokenWithLeeway(tokenString, secret, 0)
+}
 
-	if err != nil {
-		return nil, err
-	}
+// ValidateTokenWithLeeway validates a JWT token with configurable time leeway and returns the claims
+func ValidateTokenWithLeeway(tokenString, secret string, leeway time.Duration) (*Claims, error) {
+    // Restrict to HS256 and apply leeway for time-based claims
+    token, err := jwt.ParseWithClaims(
+        tokenString,
+        &Claims{},
+        func(token *jwt.Token) (interface{}, error) {
+            if m, ok := token.Method.(*jwt.SigningMethodHMAC); !ok || m.Alg() != jwt.SigningMethodHS256.Alg() {
+                return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+            }
+            return []byte(secret), nil
+        },
+        jwt.WithLeeway(leeway),
+        jwt.WithValidMethods([]string{jwt.SigningMethodHS256.Alg()}),
+    )
 
-	if claims, ok := token.Claims.(*Claims); ok && token.Valid {
-		return claims, nil
-	}
+    if err != nil {
+        return nil, err
+    }
 
-	return nil, fmt.Errorf("invalid token")
+    if claims, ok := token.Claims.(*Claims); ok && token.Valid {
+        // Enforce required claims presence: sub, exp, iat
+        if claims.Subject == "" || claims.ExpiresAt == nil || claims.IssuedAt == nil {
+            return nil, fmt.Errorf("missing required claims")
+        }
+        // Ensure sub is numeric user ID
+        if _, err := strconv.ParseInt(claims.Subject, 10, 64); err != nil {
+            return nil, fmt.Errorf("invalid subject claim")
+        }
+        return claims, nil
+    }
+
+    return nil, fmt.Errorf("invalid token")
 }

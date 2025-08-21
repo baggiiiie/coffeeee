@@ -1,60 +1,81 @@
 package middleware
 
 import (
-	"context"
-	"net/http"
-	"strings"
+    "encoding/json"
+    "net/http"
+    "strconv"
+    "strings"
+    "time"
 
-	"coffee-companion/backend/internal/utils"
+    "coffee-companion/backend/internal/utils"
 )
 
-type contextKey string
+const authErrorCode = "AUTHENTICATION_ERROR"
 
-const UserContextKey contextKey = "user"
-
+// AuthMiddleware validates JWT from Authorization header and injects auth context
 func AuthMiddleware(jwtSecret string) func(http.Handler) http.Handler {
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			// Extract token from Authorization header
-			authHeader := r.Header.Get("Authorization")
-			if authHeader == "" {
-				http.Error(w, "authorization header required", http.StatusUnauthorized)
-				return
-			}
+    return func(next http.Handler) http.Handler {
+        return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+            // Extract token from Authorization header
+            authHeader := r.Header.Get("Authorization")
+            if authHeader == "" {
+                writeAuthError(w, "Invalid or missing authentication token")
+                return
+            }
 
-			// Check if it's a Bearer token
-			if !strings.HasPrefix(authHeader, "Bearer ") {
-				http.Error(w, "invalid authorization header format", http.StatusUnauthorized)
-				return
-			}
+            // Check Bearer format
+            if !strings.HasPrefix(authHeader, "Bearer ") {
+                writeAuthError(w, "Invalid or missing authentication token")
+                return
+            }
 
-			tokenString := strings.TrimPrefix(authHeader, "Bearer ")
+            tokenString := strings.TrimSpace(strings.TrimPrefix(authHeader, "Bearer "))
+            if tokenString == "" {
+                writeAuthError(w, "Invalid or missing authentication token")
+                return
+            }
 
-			// Validate token
-			claims, err := utils.ValidateToken(tokenString, jwtSecret)
-			if err != nil {
-				http.Error(w, "invalid token", http.StatusUnauthorized)
-				return
-			}
+            // Validate token with small leeway for clock skew
+            claims, err := utils.ValidateTokenWithLeeway(tokenString, jwtSecret, 60*time.Second)
+            if err != nil {
+                writeAuthError(w, "Invalid or missing authentication token")
+                return
+            }
 
-			// Set user context
-			ctx := context.WithValue(r.Context(), UserContextKey, claims)
-			next.ServeHTTP(w, r.WithContext(ctx))
-		})
-	}
+            // Derive user ID from `sub` claim
+            var userID int64
+            if claims != nil && claims.Subject != "" {
+                if uid, parseErr := strconv.ParseInt(claims.Subject, 10, 64); parseErr == nil {
+                    userID = uid
+                }
+            }
+            if userID == 0 {
+                writeAuthError(w, "Invalid or missing authentication token")
+                return
+            }
+
+            // Inject into context for downstream handlers
+            ctx := WithAuthClaims(r.Context(), claims)
+            ctx = WithAuthenticatedUserID(ctx, userID)
+            next.ServeHTTP(w, r.WithContext(ctx))
+        })
+    }
 }
 
-// GetUserFromContext extracts user claims from request context
-func GetUserFromContext(ctx context.Context) (*utils.Claims, bool) {
-	claims, ok := ctx.Value(UserContextKey).(*utils.Claims)
-	return claims, ok
+func writeAuthError(w http.ResponseWriter, message string) {
+    w.Header().Set("Content-Type", "application/json")
+    w.WriteHeader(http.StatusUnauthorized)
+    _ = json.NewEncoder(w).Encode(map[string]string{
+        "code":    authErrorCode,
+        "message": message,
+    })
 }
 
 func LoggingMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// TODO: Implement request logging middleware
-		next.ServeHTTP(w, r)
-	})
+    return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+        // TODO: Implement request logging middleware
+        next.ServeHTTP(w, r)
+    })
 }
 
 func SecurityHeadersMiddleware(next http.Handler) http.Handler {
