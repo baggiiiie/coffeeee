@@ -7,8 +7,12 @@ interface ProtectedRouteProps {
 }
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
-    const { isAuthenticated } = useAuth()
+    const { isAuthenticated, isBootstrapping } = useAuth()
     const location = useLocation()
+
+    if (isBootstrapping) {
+        return <div>Loading...</div>
+    }
 
     if (!isAuthenticated) {
         // Redirect to login page with the current location as state

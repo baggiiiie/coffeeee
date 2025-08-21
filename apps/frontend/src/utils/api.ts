@@ -25,7 +25,11 @@ api.interceptors.response.use(
         const status = (error.response?.status ?? 0) as number
         if (status === 401) {
             // Emit a custom event for the AuthProvider to handle
-            window.dispatchEvent(new CustomEvent('auth:logout'))
+            // Include a detail reason so the provider can show appropriate UX
+            if (!logoutGuard.isLoggingOut) {
+                logoutGuard.isLoggingOut = true
+                window.dispatchEvent(new CustomEvent('auth:logout', { detail: { reason: 'token-expired' } }))
+            }
         }
         return Promise.reject(error)
     }
@@ -33,3 +37,12 @@ api.interceptors.response.use(
 
 export default api
 
+// Simple idempotency guard for concurrent 401s.
+// The AuthProvider can reset this after a successful login/hydration.
+export const logoutGuard = {
+    isLoggingOut: false,
+}
+
+export function resetLogoutGuard() {
+    logoutGuard.isLoggingOut = false
+}

@@ -1,14 +1,16 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react'
+import React, { createContext, useContext, useState, useEffect, ReactNode, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { User, CreateUserRequest, LoginRequest, LoginResponse } from '@coffee-companion/shared-types'
-import api from '../utils/api'
+import api, { resetLogoutGuard } from '../utils/api'
+import { Snackbar, Alert } from '@mui/material'
 
 interface AuthContextType {
     user: User | null
     token: string | null
     isAuthenticated: boolean
+    isBootstrapping: boolean
     login: (email: string, password: string) => Promise<void>
-    logout: () => void
+    logout: (opts?: { reason?: 'token-expired' | 'manual' }) => void
     register: (userData: CreateUserRequest) => Promise<void>
 }
 
@@ -32,7 +34,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const [user, setUser] = useState<User | null>(null)
     const [token, setToken] = useState<string | null>(null)
     const [isAuthenticated, setIsAuthenticated] = useState(false)
-    const [isHydrating, setIsHydrating] = useState(true)
+    const [isBootstrapping, setIsBootstrapping] = useState(true)
+    const isLoggingOutRef = useRef(false)
+    const [toastOpen, setToastOpen] = useState(false)
+    const [toastMessage, setToastMessage] = useState('')
     const navigate = useNavigate()
 
     // Load token from localStorage on mount and migrate legacy key if present
@@ -51,13 +56,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             // Hydrate user data from token
             hydrateUser(activeToken)
         } else {
-            setIsHydrating(false)
+            setIsBootstrapping(false)
         }
     }, [])
 
     // Listen for global auth:logout events (e.g., Axios 401 handler)
     useEffect(() => {
-        const handler = () => logout()
+        const handler = (e: Event) => {
+            const ce = e as CustomEvent<{ reason?: 'token-expired' }>
+            logout({ reason: ce.detail?.reason === 'token-expired' ? 'token-expired' : 'manual' })
+        }
         window.addEventListener('auth:logout', handler as EventListener)
         return () => window.removeEventListener('auth:logout', handler as EventListener)
     }, [])
@@ -73,12 +81,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
             setUser(userData)
             setIsAuthenticated(true)
+            resetLogoutGuard()
+            isLoggingOutRef.current = false
         } catch (error: any) {
             console.error('Failed to hydrate user:', error)
             // If hydration fails (401, etc.), clear the token and remain unauthenticated
-            logout()
+            const status = error?.response?.status ?? 0
+            if (status === 401) {
+                logout({ reason: 'token-expired' })
+            } else {
+                logout()
+            }
         } finally {
-            setIsHydrating(false)
+            setIsBootstrapping(false)
         }
     }
 
@@ -93,21 +108,32 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             setToken(loginResponse.token)
             setIsAuthenticated(true)
             localStorage.setItem(TOKEN_KEY, loginResponse.token)
+            resetLogoutGuard()
         } catch (error) {
             console.error('Login failed:', error)
             throw error
         }
     }
 
-    const logout = () => {
+    const logout = (opts?: { reason?: 'token-expired' | 'manual' }) => {
+        if (isLoggingOutRef.current) return
+        isLoggingOutRef.current = true
+
         setUser(null)
         setToken(null)
         setIsAuthenticated(false)
         localStorage.removeItem(TOKEN_KEY)
         // Also remove any legacy key if present
         localStorage.removeItem('token')
+
+        if (opts?.reason === 'token-expired') {
+            setToastMessage('Session expired. Please sign in again.')
+            setToastOpen(true)
+        }
+
         // Redirect to login page
         navigate('/login', { replace: true })
+        // Guard stays engaged until next successful auth; reset in login/hydrate success
     }
 
     const register = async (userData: CreateUserRequest) => {
@@ -127,19 +153,25 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         user,
         token,
         isAuthenticated,
+        isBootstrapping,
         login,
         logout,
         register,
     }
 
-    // Don't render children until hydration is complete to avoid flashing
-    if (isHydrating) {
-        return <div>Loading...</div>
-    }
-
     return (
         <AuthContext.Provider value={value}>
             {children}
+            <Snackbar
+                open={toastOpen}
+                autoHideDuration={3000}
+                onClose={() => setToastOpen(false)}
+                anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+            >
+                <Alert severity="info" data-testid="session-expired-toast" onClose={() => setToastOpen(false)}>
+                    {toastMessage}
+                </Alert>
+            </Snackbar>
         </AuthContext.Provider>
     )
 }
