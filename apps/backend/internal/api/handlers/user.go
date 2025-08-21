@@ -1,13 +1,12 @@
 package handlers
 
 import (
+	"coffee-companion/backend/internal/api/middleware"
+	"coffee-companion/backend/internal/config"
 	"database/sql"
 	"encoding/json"
 	"net/http"
 	"time"
-
-	"coffee-companion/backend/internal/api/middleware"
-	"coffee-companion/backend/internal/config"
 )
 
 type UserHandler struct {
@@ -40,7 +39,6 @@ func (h *UserHandler) GetProfile(w http.ResponseWriter, r *http.Request) {
 		`SELECT username, email, created_at, updated_at FROM users WHERE id = ?`,
 		userID,
 	).Scan(&username, &email, &createdAt, &updatedAt)
-
 	if err != nil {
 		if err == sql.ErrNoRows {
 			// User not found in database
