@@ -1,0 +1,41 @@
+schema: 1
+story: '1.6'
+story_title: 'Backend JWT Authentication Middleware'
+gate: PASS
+status_reason: 'Middleware validates HS256 JWTs with leeway, returns structured 401s, injects context, and is applied to protected routes with tests.'
+reviewer: 'Quinn (Test Architect)'
+updated: '2025-08-21T00:00:00Z'
+
+waiver: { active: false }
+
+top_issues: []
+
+quality_score: 100
+expires: '2025-09-04T00:00:00Z'
+
+evidence:
+  tests_reviewed: 4
+  risks_identified: 0
+  trace:
+    ac_covered: [1, 2, 3, 4, 5]
+    ac_gaps: []
+
+nfr_validation:
+  security:
+    status: PASS
+    notes: 'Algorithm restricted; claims validated; small leeway applied.'
+  performance:
+    status: PASS
+    notes: ''
+  reliability:
+    status: PASS
+    notes: 'Unit + integration tests cover core paths.'
+  maintainability:
+    status: PASS
+    notes: 'Context helpers and clear separation; suggest structured logging.'
+
+recommendations:
+  immediate: []
+  future:
+    - action: 'Add structured logging and optional WWW-Authenticate header'
+      refs: ['apps/backend/internal/api/middleware/middleware.go']
