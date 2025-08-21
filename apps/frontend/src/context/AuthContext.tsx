@@ -112,8 +112,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     const register = async (userData: CreateUserRequest) => {
         try {
-            const response = await api.post('/api/v1/users', userData)
-            const user: User = response.data
+            await api.post('/api/v1/users', userData)
 
             // For registration, we'll need to log in the user after successful registration
             // This is a simplified approach - in a real app, you might want to handle this differently
