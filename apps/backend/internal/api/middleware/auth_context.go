@@ -5,7 +5,12 @@ import (
 	"context"
 )
 
-// contextKey is a private type to avoid collisions with other context keys
+// contextKey is a private type to avoid collisions with other context keys.
+//
+// NOTE: it provides better type safety when storing/retrieving values from context.
+// Without a custom type, a contextKey is just a string.
+// someone may accidentally overwrite our contextKey if they happened to use the same string key.
+// e.g., if someone try to store "authUserID", it overwrites our contextKeyAuthUserID.
 type contextKey string
 
 const (

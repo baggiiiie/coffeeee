@@ -13,6 +13,7 @@ const authErrorCode = "AUTHENTICATION_ERROR"
 
 // AuthMiddleware validates JWT from Authorization header and injects auth context
 func AuthMiddleware(jwtSecret string) func(http.Handler) http.Handler {
+	// NOTE: it's a higher-order function that returns a middleware function
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			// Extract token from Authorization header

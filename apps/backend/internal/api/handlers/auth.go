@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"coffee-companion/backend/internal/config"
+	"coffee-companion/backend/internal/utils"
 	"database/sql"
 	"encoding/json"
 	"errors"
@@ -8,9 +10,6 @@ import (
 	"net/mail"
 	"strings"
 	"time"
-
-	"coffee-companion/backend/internal/config"
-	"coffee-companion/backend/internal/utils"
 
 	"github.com/mattn/go-sqlite3"
 )
@@ -21,6 +20,7 @@ type AuthHandler struct {
 }
 
 func NewAuthHandler(db *sql.DB, cfg *config.Config) *AuthHandler {
+	// NOTE: this is constructor pattern, returning a new instance of AuthHandler
 	return &AuthHandler{db: db, cfg: cfg}
 }
 
@@ -37,7 +37,13 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 
 	var body reqBody
 	dec := json.NewDecoder(r.Body)
+	// NOTE: DisallowUnknownFields set some internal flag to true
+	// such that if there's unknown fields to decode, it will return an error
+	// "unknown field" anything that is not defined in `reqBody`
 	dec.DisallowUnknownFields()
+	// NOTE:`&body` is passed in, `body` is type `reqBody`
+	// so decoder will decode the JSON body into `body`
+	// raise error if fields are missing or unknown
 	if err := dec.Decode(&body); err != nil {
 		http.Error(w, "invalid JSON body", http.StatusBadRequest)
 		return
@@ -63,7 +69,6 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		`SELECT id, username, password_hash, password_salt FROM users WHERE email = ?`,
 		email,
 	).Scan(&userID, &username, &passwordHash, &passwordSalt)
-
 	if err != nil {
 		if err == sql.ErrNoRows {
 			http.Error(w, "invalid email or password", http.StatusUnauthorized)
@@ -149,6 +154,9 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	)
 	if err != nil {
 		var sqlErr sqlite3.Error
+		// NOTE: This if condition is doing:
+		// Is err (or any error it wraps) of type sqlite3.Error?
+		// If so, copy it into sqlErr
 		if errors.As(err, &sqlErr) {
 			// Unique constraint violation
 			if sqlErr.ExtendedCode == sqlite3.ErrConstraintUnique || sqlErr.Code == sqlite3.ErrConstraint {

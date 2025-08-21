@@ -1,15 +1,14 @@
 package routes
 
 import (
+	"coffee-companion/backend/internal/api/handlers"
+	"coffee-companion/backend/internal/api/middleware"
+	"coffee-companion/backend/internal/config"
 	"database/sql"
 	"net/http"
 
 	"github.com/gorilla/mux"
 	"github.com/rs/cors"
-
-	"coffee-companion/backend/internal/api/handlers"
-	"coffee-companion/backend/internal/api/middleware"
-	"coffee-companion/backend/internal/config"
 )
 
 func Setup(db *sql.DB, cfg *config.Config) http.Handler {
@@ -37,7 +36,9 @@ func Setup(db *sql.DB, cfg *config.Config) http.Handler {
 	api.HandleFunc("/coffees/{id:[0-9]+}", coffeeHandler.Get).Methods("GET")
 
 	// Protected routes
+	// NOTE: `protected` inherits from `api`, i.e., it will have the same prefix `/api/v1`
 	protected := api.PathPrefix("").Subrouter()
+	// NOTE: everything under `protected` will require authentication
 	protected.Use(middleware.AuthMiddleware(cfg.JWT.Secret))
 
 	// User routes
