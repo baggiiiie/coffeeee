@@ -17,7 +17,7 @@ vi.mock('react-router-dom', async (orig) => {
 
 describe('SignUpPage', () => {
     beforeEach(() => {
-        // @ts-ignore
+        // @ts-expect-error - vi.fn() is a testing utility that mocks fetch
         global.fetch = vi.fn()
     })
 
