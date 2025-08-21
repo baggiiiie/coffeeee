@@ -1,32 +1,101 @@
+import React from 'react'
 import { render, screen } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
-import { MemoryRouter } from 'react-router-dom'
-import App from '../App'
+import { BrowserRouter } from 'react-router-dom'
+import { vi } from 'vitest'
+import Header from './Header'
 
-describe('Header Logout', () => {
+// Mock the auth context
+vi.mock('../context/AuthContext', () => ({
+    useAuth: vi.fn(),
+    AuthProvider: ({ children }: { children: React.ReactNode }) => <div>{children}</div>
+}))
+
+const mockUseAuth = vi.mocked(await import('../context/AuthContext')).useAuth
+
+describe('Header', () => {
     beforeEach(() => {
-        localStorage.clear()
+        vi.clearAllMocks()
     })
 
-    it('clears authToken and redirects to /login on Logout click', async () => {
-        localStorage.setItem('authToken', 'test-token')
-        const user = userEvent.setup()
+    it('should show logout button when user is authenticated', () => {
+        mockUseAuth.mockReturnValue({
+            user: { id: 1, username: 'testuser', email: 'test@example.com', createdAt: '2025-01-01T00:00:00Z', updatedAt: '2025-01-01T00:00:00Z' },
+            token: 'test-token',
+            isAuthenticated: true,
+            login: vi.fn(),
+            logout: vi.fn(),
+            register: vi.fn()
+        })
 
         render(
-            <MemoryRouter initialEntries={["/dashboard"]}>
-                <App />
-            </MemoryRouter>
+            <BrowserRouter>
+                <Header />
+            </BrowserRouter>
         )
 
-        // Ensure Logout button is visible for authenticated user
-        const logoutBtn = await screen.findByRole('button', { name: /logout/i })
-        await user.click(logoutBtn)
+        expect(screen.getByTestId('logout-button')).toBeInTheDocument()
+        expect(screen.getByText('Logout')).toBeInTheDocument()
+    })
 
-        // Token cleared
-        expect(localStorage.getItem('authToken')).toBeNull()
+    it('should not show logout button when user is not authenticated', () => {
+        mockUseAuth.mockReturnValue({
+            user: null,
+            token: null,
+            isAuthenticated: false,
+            login: vi.fn(),
+            logout: vi.fn(),
+            register: vi.fn()
+        })
 
-        // Redirected to login page (by checking heading text)
-        expect(await screen.findByRole('heading', { name: /login/i })).toBeInTheDocument()
+        render(
+            <BrowserRouter>
+                <Header />
+            </BrowserRouter>
+        )
+
+        expect(screen.queryByTestId('logout-button')).not.toBeInTheDocument()
+        expect(screen.queryByText('Logout')).not.toBeInTheDocument()
+    })
+
+    it('should show login and signup buttons when user is not authenticated', () => {
+        mockUseAuth.mockReturnValue({
+            user: null,
+            token: null,
+            isAuthenticated: false,
+            login: vi.fn(),
+            logout: vi.fn(),
+            register: vi.fn()
+        })
+
+        render(
+            <BrowserRouter>
+                <Header />
+            </BrowserRouter>
+        )
+
+        expect(screen.getByText('Login')).toBeInTheDocument()
+        expect(screen.getByText('Sign Up')).toBeInTheDocument()
+    })
+
+    it('should show navigation buttons when user is authenticated', () => {
+        mockUseAuth.mockReturnValue({
+            user: { id: 1, username: 'testuser', email: 'test@example.com', createdAt: '2025-01-01T00:00:00Z', updatedAt: '2025-01-01T00:00:00Z' },
+            token: 'test-token',
+            isAuthenticated: true,
+            login: vi.fn(),
+            logout: vi.fn(),
+            register: vi.fn()
+        })
+
+        render(
+            <BrowserRouter>
+                <Header />
+            </BrowserRouter>
+        )
+
+        expect(screen.getByText('Dashboard')).toBeInTheDocument()
+        expect(screen.getByText('Coffees')).toBeInTheDocument()
+        expect(screen.getByText('Profile')).toBeInTheDocument()
     })
 })
 

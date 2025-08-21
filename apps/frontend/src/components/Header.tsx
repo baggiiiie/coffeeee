@@ -29,7 +29,11 @@ const Header: React.FC = () => {
                             <Button color="inherit" component={RouterLink} to="/profile">
                                 Profile
                             </Button>
-                            <Button color="inherit" onClick={logout}>
+                            <Button
+                                color="inherit"
+                                onClick={logout}
+                                data-testid="logout-button"
+                            >
                                 Logout
                             </Button>
                         </>

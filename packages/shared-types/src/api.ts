@@ -20,47 +20,12 @@ export interface PaginatedResponse<T> {
     hasMore: boolean;
 }
 
-export interface APIEndpoints {
-    // Auth endpoints
-    auth: {
-        login: '/api/v1/auth/login';
-        register: '/api/v1/users';
-    };
+// Helper functions for dynamic endpoints
+export const getCoffeeEndpoint = (id: number) => `/api/v1/coffees/${id}`;
+export const getBrewLogEndpoint = (id: number) => `/api/v1/brewlogs/${id}`;
+export const getUserBrewLogsEndpoint = (userId: number) => `/api/v1/users/${userId}/brewlogs`;
 
-    // User endpoints
-    users: {
-        me: '/api/v1/users/me';
-        update: '/api/v1/users/me';
-        delete: '/api/v1/users/me';
-    };
-
-    // Coffee endpoints
-    coffees: {
-        list: '/api/v1/coffees';
-        create: '/api/v1/coffees';
-        get: (id: number) => `/api/v1/coffees/${id}`;
-        update: (id: number) => `/api/v1/coffees/${id}`;
-        delete: (id: number) => `/api/v1/coffees/${id}`;
-    };
-
-    // Brew log endpoints
-    brewLogs: {
-        list: '/api/v1/brewlogs';
-        create: '/api/v1/brewlogs';
-        get: (id: number) => `/api/v1/brewlogs/${id}`;
-        update: (id: number) => `/api/v1/brewlogs/${id}`;
-        delete: (id: number) => `/api/v1/brewlogs/${id}`;
-        byUser: (userId: number) => `/api/v1/users/${userId}/brewlogs`;
-    };
-
-    // AI endpoints
-    ai: {
-        extractCoffee: '/api/v1/ai/extract-coffee';
-        recommendation: '/api/v1/ai/recommendation';
-    };
-}
-
-export const API_ENDPOINTS: APIEndpoints = {
+export const API_ENDPOINTS = {
     auth: {
         login: '/api/v1/auth/login',
         register: '/api/v1/users',
@@ -73,20 +38,13 @@ export const API_ENDPOINTS: APIEndpoints = {
     coffees: {
         list: '/api/v1/coffees',
         create: '/api/v1/coffees',
-        get: (id: number) => `/api/v1/coffees/${id}`,
-        update: (id: number) => `/api/v1/coffees/${id}`,
-        delete: (id: number) => `/api/v1/coffees/${id}`,
     },
     brewLogs: {
         list: '/api/v1/brewlogs',
         create: '/api/v1/brewlogs',
-        get: (id: number) => `/api/v1/brewlogs/${id}`,
-        update: (id: number) => `/api/v1/brewlogs/${id}`,
-        delete: (id: number) => `/api/v1/brewlogs/${id}`,
-        byUser: (userId: number) => `/api/v1/users/${userId}/brewlogs`,
     },
     ai: {
         extractCoffee: '/api/v1/ai/extract-coffee',
         recommendation: '/api/v1/ai/recommendation',
     },
-};
+} as const;

@@ -14,7 +14,7 @@ export interface CreateCoffeeRequest {
     origin?: string;
     roaster?: string;
     description?: string;
-    photo?: File;
+    photo?: any; // Using any for now to avoid File type issues
 }
 
 export interface UpdateCoffeeRequest {
@@ -22,7 +22,7 @@ export interface UpdateCoffeeRequest {
     origin?: string;
     roaster?: string;
     description?: string;
-    photo?: File;
+    photo?: any; // Using any for now to avoid File type issues
 }
 
 export interface CoffeeFilters {

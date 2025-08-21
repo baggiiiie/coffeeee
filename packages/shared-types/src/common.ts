@@ -29,7 +29,7 @@ export interface AsyncState<T> {
 }
 
 export interface FileUpload {
-    file: File;
+    file: any; // Using any for now to avoid File type issues
     progress: number;
     status: 'pending' | 'uploading' | 'success' | 'error';
     url?: string;
