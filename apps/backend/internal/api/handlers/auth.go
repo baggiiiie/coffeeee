@@ -131,12 +131,18 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "invalid JSON body", http.StatusBadRequest)
 		return
 	}
-	email := strings.TrimSpace(strings.ToLower(body.Email))
-	password := body.Password
-	if email == "" || password == "" {
-		http.Error(w, "email and password are required", http.StatusBadRequest)
-		return
-	}
+    email := strings.TrimSpace(strings.ToLower(body.Email))
+    password := body.Password
+    if email == "" || password == "" {
+        http.Error(w, "email and password are required", http.StatusBadRequest)
+        return
+    }
+
+    // Validate email format similar to Login handler
+    if _, err := mail.ParseAddress(email); err != nil {
+        http.Error(w, "invalid email format", http.StatusBadRequest)
+        return
+    }
 
 	salt, err := utils.GenerateSalt(16)
 	if err != nil {

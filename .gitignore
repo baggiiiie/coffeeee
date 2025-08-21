@@ -16,6 +16,7 @@ build/
 *.test
 *.out
 go.work
+*.gocache
 
 # Environment variables
 .env
