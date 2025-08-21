@@ -20,7 +20,6 @@ describe('Axios 401 auto-logout interceptor', () => {
     it('dispatches logout and redirects to /login on 401', async () => {
         // Mock adapter to simulate a 401 response
         api.defaults.adapter = (config) => {
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
             return Promise.reject({ response: { status: 401 } } as any)
         }
 

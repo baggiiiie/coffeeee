@@ -93,7 +93,7 @@ const LoginPage: React.FC = () => {
                     
                     <Box sx={{ textAlign: 'center' }}>
                         <Link href="/signup" variant="body2">
-                            Don't have an account? Sign up
+                            Don&apos;t have an account? Sign up
                         </Link>
                     </Box>
                 </Box>
