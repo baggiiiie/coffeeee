@@ -45,6 +45,8 @@ func Setup(db *sql.DB, cfg *config.Config) http.Handler {
 	protected.HandleFunc("/users/me", userHandler.GetProfile).Methods("GET")
 	protected.HandleFunc("/users/me", userHandler.UpdateProfile).Methods("PUT")
 	protected.HandleFunc("/users/me", userHandler.DeleteProfile).Methods("DELETE")
+	// User-coffee linking
+	protected.HandleFunc("/users/me/coffees", coffeeHandler.CreateForMe).Methods("POST")
 
 	// Coffee routes (protected write access)
 	protected.HandleFunc("/coffees", coffeeHandler.Create).Methods("POST")

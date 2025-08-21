@@ -33,13 +33,13 @@ func TestMigrateUpAndDownUsers(t *testing.T) {
         t.Fatalf("expected users table to exist after up")
     }
 
-    // Down one
+    // Down one (revert latest migration only)
     if err := ApplyDownOne(db, migrationsDir); err != nil {
         t.Fatalf("migrate down failed: %v", err)
     }
-
-    if tableExists(t, db, "users") {
-        t.Fatalf("expected users table to be dropped after down")
+    // After reverting the latest migration, the base users table should still exist
+    if !tableExists(t, db, "users") {
+        t.Fatalf("expected users table to remain after reverting only latest migration")
     }
 }
 
@@ -74,4 +74,3 @@ func TestSchemaMigrationsTracking(t *testing.T) {
         t.Fatalf("expected schema_migrations table to exist")
     }
 }
-

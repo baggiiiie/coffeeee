@@ -8,6 +8,7 @@ import SignUpPage from './pages/SignUpPage'
 import Dashboard from './pages/Dashboard'
 import CoffeeListPage from './pages/CoffeeListPage'
 import CoffeeDetailPage from './pages/CoffeeDetailPage'
+import CoffeeNewPage from './pages/CoffeeNewPage'
 import BrewLogForm from './pages/BrewLogForm'
 import UserProfilePage from './pages/UserProfilePage'
 import { AuthProvider } from './context/AuthContext'
@@ -33,6 +34,11 @@ function App() {
                         <Route path="/coffees" element={
                             <ProtectedRoute>
                                 <CoffeeListPage />
+                            </ProtectedRoute>
+                        } />
+                        <Route path="/coffees/new" element={
+                            <ProtectedRoute>
+                                <CoffeeNewPage />
                             </ProtectedRoute>
                         } />
                         <Route path="/coffees/:id" element={
