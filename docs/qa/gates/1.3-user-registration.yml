@@ -1,0 +1,47 @@
+schema: 1
+story: '1.3'
+story_title: 'User Registration'
+gate: CONCERNS
+status_reason: 'Uses SHA-256 for password hashing and lacks abuse protections; functionality meets ACs.'
+reviewer: 'Quinn (Test Architect)'
+updated: '2025-08-21T00:00:00Z'
+
+waiver: { active: false }
+
+top_issues: []
+
+quality_score: 90
+expires: '2025-09-04T00:00:00Z'
+
+evidence:
+  tests_reviewed: 3
+  risks_identified: 2
+  trace:
+    ac_covered: [1, 2, 4]
+    ac_gaps: [3, 5]
+
+nfr_validation:
+  security:
+    status: CONCERNS
+    notes: 'SHA-256 used instead of bcrypt/Argon2; no rate limiting/CAPTCHA.'
+  performance:
+    status: PASS
+    notes: ''
+  reliability:
+    status: PASS
+    notes: ''
+  maintainability:
+    status: PASS
+    notes: 'Code organized; suggest structured logging for observability.'
+
+recommendations:
+  immediate:
+    - action: 'Migrate to bcrypt or Argon2 for password hashing'
+      refs: ['apps/backend/internal/utils/password.go', 'apps/backend/internal/api/handlers/auth.go']
+    - action: 'Add basic password policy validation (min length/complexity)'
+      refs: ['apps/backend/internal/api/handlers/auth.go']
+  future:
+    - action: 'Introduce rate limiting/CAPTCHA on registration endpoint'
+      refs: ['apps/backend/internal/api/routes/routes.go']
+    - action: 'Add structured logging in auth handlers'
+      refs: ['apps/backend/internal/api/handlers/auth.go']

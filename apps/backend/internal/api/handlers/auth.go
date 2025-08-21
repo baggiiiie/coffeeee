@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"net/mail"
 	"strings"
 	"time"
 
@@ -46,6 +47,12 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	password := body.Password
 	if email == "" || password == "" {
 		http.Error(w, "email and password are required", http.StatusBadRequest)
+		return
+	}
+
+	// Basic email format validation (defense-in-depth)
+	if _, err := mail.ParseAddress(email); err != nil {
+		http.Error(w, "invalid email format", http.StatusBadRequest)
 		return
 	}
 

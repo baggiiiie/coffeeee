@@ -87,6 +87,23 @@ func TestRegister_DuplicateEmail(t *testing.T) {
 	}
 }
 
+func TestRegister_InvalidEmail(t *testing.T) {
+    db, handler := newTestServer(t)
+    defer db.Close()
+
+    body := map[string]string{"email": "not-an-email", "password": "secret123"}
+    b, _ := json.Marshal(body)
+
+    req := httptest.NewRequest(http.MethodPost, "/api/v1/users", bytes.NewReader(b))
+    req.Header.Set("Content-Type", "application/json")
+    rr := httptest.NewRecorder()
+    handler.ServeHTTP(rr, req)
+
+    if rr.Code != http.StatusBadRequest {
+        t.Fatalf("expected 400 for invalid email, got %d: %s", rr.Code, rr.Body.String())
+    }
+}
+
 func TestLogin_Success(t *testing.T) {
 	db, handler := newTestServer(t)
 	defer db.Close()

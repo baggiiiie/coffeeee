@@ -1,0 +1,47 @@
+schema: 1
+story: '1.4'
+story_title: 'User Login & Authentication'
+gate: CONCERNS
+status_reason: 'Strong functionality and tests; security concerns on password KDF and lack of abuse protections.'
+reviewer: 'Quinn (Test Architect)'
+updated: '2025-08-21T00:00:00Z'
+
+waiver: { active: false }
+
+top_issues: []
+
+quality_score: 90
+expires: '2025-09-04T00:00:00Z'
+
+evidence:
+  tests_reviewed: 5
+  risks_identified: 2
+  trace:
+    ac_covered: [1, 2, 3, 4]
+    ac_gaps: [5]
+
+nfr_validation:
+  security:
+    status: CONCERNS
+    notes: 'Salted SHA-256 password hashing; no rate limiting; token in localStorage (MVP acceptable).' 
+  performance:
+    status: PASS
+    notes: ''
+  reliability:
+    status: PASS
+    notes: 'Comprehensive tests for auth scenarios.'
+  maintainability:
+    status: PASS
+    notes: 'Clear separation of concerns; recommend structured logging.'
+
+recommendations:
+  immediate:
+    - action: 'Migrate password hashing to bcrypt or Argon2'
+      refs: ['apps/backend/internal/utils/password.go']
+    - action: 'Introduce login rate limiting and/or CAPTCHA'
+      refs: ['apps/backend/internal/api/routes/routes.go', 'apps/backend/internal/api/middleware']
+  future:
+    - action: 'Consider HttpOnly cookie-based auth with CSRF mitigation'
+      refs: ['docs/architecture/backend-architecture.md']
+    - action: 'Add structured logging for auth flows'
+      refs: ['apps/backend/internal/api/middleware/middleware.go', 'apps/backend/internal/api/handlers/auth.go']
