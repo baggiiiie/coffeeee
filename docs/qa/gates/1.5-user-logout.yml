@@ -1,0 +1,43 @@
+schema: 1
+story: '1.5'
+story_title: 'User Logout'
+gate: PASS
+status_reason: 'Meets all ACs with solid tests for logout action, route guard, and 401 auto-logout.'
+reviewer: 'Quinn (Test Architect)'
+updated: '2025-08-21T00:00:00Z'
+
+waiver: { active: false }
+
+top_issues: []
+
+quality_score: 100
+expires: '2025-09-04T00:00:00Z'
+
+evidence:
+  tests_reviewed: 3
+  risks_identified: 0
+  trace:
+    ac_covered: [1, 2, 3, 4, 5]
+    ac_gaps: []
+
+nfr_validation:
+  security:
+    status: PASS
+    notes: 'Auto-logout on 401; note localStorage tradeoffs acceptable for MVP.'
+  performance:
+    status: PASS
+    notes: ''
+  reliability:
+    status: PASS
+    notes: 'Deterministic behavior with tests.'
+  maintainability:
+    status: PASS
+    notes: 'Clear separation (Header, AuthContext, ProtectedRoute, api.ts).'
+
+recommendations:
+  immediate: []
+  future:
+    - action: 'Consider logout confirmation and UX toast/snackbar'
+      refs: ['apps/frontend/src/components/Header.tsx']
+    - action: 'Evaluate HttpOnly cookie auth for production with CSRF mitigation'
+      refs: ['docs/architecture/backend-architecture.md']
