@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { User, CreateUserRequest, LoginRequest, LoginResponse } from '@coffee-companion/shared-types'
 
 interface AuthContextType {
@@ -25,20 +26,36 @@ interface AuthProviderProps {
 }
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'
+const TOKEN_KEY = 'authToken'
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const [user, setUser] = useState<User | null>(null)
     const [token, setToken] = useState<string | null>(null)
     const [isAuthenticated, setIsAuthenticated] = useState(false)
+    const navigate = useNavigate()
 
-    // Load token from localStorage on mount
+    // Load token from localStorage on mount and migrate legacy key if present
     useEffect(() => {
-        const savedToken = localStorage.getItem('token')
-        if (savedToken) {
-            setToken(savedToken)
-            setIsAuthenticated(true)
-            // TODO: Validate token and load user data
+        const legacyToken = localStorage.getItem('token')
+        const savedToken = localStorage.getItem(TOKEN_KEY)
+        if (!savedToken && legacyToken) {
+            localStorage.setItem(TOKEN_KEY, legacyToken)
+            localStorage.removeItem('token')
         }
+
+        const activeToken = savedToken || legacyToken
+        if (activeToken) {
+            setToken(activeToken)
+            setIsAuthenticated(true)
+            // TODO: Optionally validate token and load user data
+        }
+    }, [])
+
+    // Listen for global auth:logout events (e.g., Axios 401 handler)
+    useEffect(() => {
+        const handler = () => logout()
+        window.addEventListener('auth:logout', handler as EventListener)
+        return () => window.removeEventListener('auth:logout', handler as EventListener)
     }, [])
 
     const login = async (email: string, password: string) => {
@@ -65,7 +82,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             setUser(loginResponse.user)
             setToken(loginResponse.token)
             setIsAuthenticated(true)
-            localStorage.setItem('token', loginResponse.token)
+            localStorage.setItem(TOKEN_KEY, loginResponse.token)
         } catch (error) {
             console.error('Login failed:', error)
             throw error
@@ -76,7 +93,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         setUser(null)
         setToken(null)
         setIsAuthenticated(false)
+        localStorage.removeItem(TOKEN_KEY)
+        // Also remove any legacy key if present
         localStorage.removeItem('token')
+        // Redirect to login page
+        navigate('/login', { replace: true })
     }
 
     const register = async (userData: CreateUserRequest) => {
