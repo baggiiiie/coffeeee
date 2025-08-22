@@ -31,10 +31,6 @@ func Setup(db *sql.DB, cfg *config.Config) http.Handler {
 	api.HandleFunc("/auth/login", authHandler.Login).Methods("POST")
 	api.HandleFunc("/users", authHandler.Register).Methods("POST")
 
-	// Coffee routes (public read access)
-	api.HandleFunc("/coffees", coffeeHandler.List).Methods("GET")
-	api.HandleFunc("/coffees/{id:[0-9]+}", coffeeHandler.Get).Methods("GET")
-
 	// Protected routes
 	// NOTE: `protected` inherits from `api`, i.e., it will have the same prefix `/api/v1`
 	protected := api.PathPrefix("").Subrouter()
@@ -45,9 +41,10 @@ func Setup(db *sql.DB, cfg *config.Config) http.Handler {
 	protected.HandleFunc("/users/me", userHandler.GetProfile).Methods("GET")
 	protected.HandleFunc("/users/me", userHandler.UpdateProfile).Methods("PUT")
 	protected.HandleFunc("/users/me", userHandler.DeleteProfile).Methods("DELETE")
-    // User coffees
-    protected.HandleFunc("/coffees", coffeeHandler.ListForUser).Methods("GET")
+	// User coffees
+	protected.HandleFunc("/coffees", coffeeHandler.ListForUser).Methods("GET")
 	protected.HandleFunc("/coffees", coffeeHandler.CreateForUser).Methods("POST")
+	protected.HandleFunc("/coffees/{id:[0-9]+}", coffeeHandler.Get).Methods("GET")
 	protected.HandleFunc("/coffees/{id:[0-9]+}", coffeeHandler.Update).Methods("PUT")
 	protected.HandleFunc("/coffees/{id:[0-9]+}", coffeeHandler.Delete).Methods("DELETE")
 
