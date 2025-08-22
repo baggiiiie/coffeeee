@@ -11,25 +11,25 @@ All endpoints will be prefixed with `/api/v1`.
 | `PUT /users/me` | Update the authenticated user's profile. | `{ "username", "email" }` | `{ "id", "username", "email" }` | Yes |
 | `DELETE /users/me` | Delete the authenticated user's account. | | `204 No Content` | Yes |
 
-### Coffee Endpoints
-These endpoints manage the canonical list of coffees.
+### User Coffee Endpoints
+Coffees are owned by the creating user (`coffees.user_id`). Creation is per-user find-or-create; listing is scoped to the authenticated user. Photos are stored on `coffees.photo_path`.
 
 | Endpoint | Description | Request Body | Response Body | Auth Required |
 |---|---|---|---|---|
-| `POST /coffees` | Add a new coffee to the system. | `{ "name", "origin", "roaster", "description" }` | Full `Coffee` object | Yes |
-| `GET /coffees` | Get a paginated list of all coffees. | | `[ { "id", "name", ... } ]` | No |
-| `GET /coffees/{id}` | Get a single coffee by its ID. | | Full `Coffee` object | No |
-| `PUT /coffees/{id}` | Update a coffee's details. | `{ "name", "origin", ... }` | Full `Coffee` object | Yes (Admin?) |
-| `DELETE /coffees/{id}` | Delete a coffee from the system. | | `204 No Content` | Yes (Admin?) |
+| `POST /users/me/coffees` | Find-or-create a coffee owned by the authenticated user. | `{ "name" (req), "origin"?, "roaster"?, "description"?, "photoPath"? }` | Full `Coffee` object (including `userId`, `photoPath`) | Yes |
+| `GET /users/me/coffees` | List coffees owned by the authenticated user. | | `[ Coffee ]` | Yes |
+| `GET /coffees/{id}` | Get a coffee by ID (owner-only). | | Full `Coffee` object | Yes (Owner only) |
 
-*Note: For the MVP, any authenticated user can add a coffee. We may want to restrict PUT/DELETE to admins in the future.*
+Notes:
+- The server enforces ownership: `GET /coffees/{id}` returns 403 if the coffee is not owned by the caller.
+- Per-user find-or-create typically matches on `name` plus optional `origin`/`roaster`; exact matching logic is implementation-defined and may evolve.
 
 ### BrewLog Endpoints
 These endpoints manage the logs created by users.
 
 | Endpoint | Description | Request Body | Response Body | Auth Required |
 |---|---|---|---|---|
-| `POST /brewlogs` | Create a new brew log for the authenticated user. | `{ "coffeeId", "brewMethod", "coffeeWeight", ... }` | Full `BrewLog` object | Yes |
+| `POST /brewlogs` | Create a new brew log for the authenticated user (coffee must be owned by user). | `{ "coffeeId", "brewMethod", "coffeeWeight", ... }` | Full `BrewLog` object | Yes |
 | `GET /brewlogs` | Get all brew logs for the authenticated user. | | `[ { "id", "coffeeId", ... } ]` | Yes |
 | `GET /brewlogs/{id}` | Get a single brew log by its ID. | | Full `BrewLog` object | Yes (Owner only) |
 | `PUT /brewlogs/{id}` | Update a brew log. | `{ "brewMethod", "coffeeWeight", ... }` | Full `BrewLog` object | Yes (Owner only) |

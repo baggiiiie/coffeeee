@@ -116,13 +116,12 @@ type CoffeeRepository interface {
 ├── users/
 │   ├── GET /me
 │   ├── PUT /me
-│   └── DELETE /me
+│   ├── DELETE /me
+│   └── coffees/
+│       ├── GET /
+│       └── POST /
 ├── coffees/
-│   ├── GET /
-│   ├── POST /
-│   ├── GET /{id}
-│   ├── PUT /{id}
-│   └── DELETE /{id}
+│   └── GET /{id}   (owner-only)
 ├── brewlogs/
 │   ├── GET /
 │   ├── POST /
