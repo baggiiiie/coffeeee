@@ -84,7 +84,7 @@ describe('Auth Persistence & Token Expiry UX (Story 1.8)', () => {
     localStorage.setItem('authToken', 'test-token')
 
     // Create a never-resolving promise to keep bootstrapping true briefly
-    let resolveFn: Function | null = null
+    let resolveFn: ((value: any) => void) | null = null
     const pending = new Promise((resolve) => { resolveFn = resolve })
     vi.spyOn(api, 'get').mockReturnValueOnce(pending as any)
 
@@ -100,6 +100,8 @@ describe('Auth Persistence & Token Expiry UX (Story 1.8)', () => {
 
     expect(screen.getByText(/loading/i)).toBeInTheDocument()
     // Clean up the pending promise to avoid unhandled rejection
-    resolveFn && resolveFn({ data: TEST_USER })
+    if (resolveFn) {
+      resolveFn({ data: TEST_USER })
+    }
   })
 })
