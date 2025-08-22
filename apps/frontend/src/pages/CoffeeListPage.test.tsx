@@ -22,7 +22,7 @@ describe('CoffeeListPage', () => {
             </MemoryRouter>
         )
 
-        await waitFor(() => expect(getSpy).toHaveBeenCalledWith('/api/v1/users/me/coffees'))
+        await waitFor(() => expect(getSpy).toHaveBeenCalledWith('/api/v1/coffees'))
         expect(await screen.findByTestId('grid')).toBeInTheDocument()
         const cards = await screen.findAllByTestId('card')
         expect(cards.length).toBe(2)

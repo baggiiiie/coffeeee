@@ -35,7 +35,7 @@ describe('CoffeeNewPage', () => {
         fireEvent.change(screen.getByTestId('coffee-name'), { target: { value: 'Test Coffee' } })
         fireEvent.click(screen.getByTestId('submit-new-coffee'))
         await waitFor(() => {
-            expect(postSpy).toHaveBeenCalledWith('/api/v1/users/me/coffees', expect.objectContaining({ name: 'Test Coffee' }))
+            expect(postSpy).toHaveBeenCalledWith('/api/v1/coffees', expect.objectContaining({ name: 'Test Coffee' }))
         })
         postSpy.mockRestore()
     })

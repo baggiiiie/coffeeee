@@ -13,7 +13,7 @@ const CoffeeListPage: React.FC = () => {
         let mounted = true
         ;(async () => {
             try {
-                const res = await api.get('/api/v1/users/me/coffees')
+                const res = await api.get('/api/v1/coffees')
                 if (!mounted) return
                 setCoffees(res.data?.coffees ?? [])
             } catch (err: any) {

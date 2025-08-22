@@ -55,7 +55,7 @@ const CoffeeNewPage: React.FC = () => {
             // MVP: client-only preview; do not upload file yet
             // Optionally include a placeholder photoPath, but omit by default
 
-            await api.post('/api/v1/users/me/coffees', payload)
+            await api.post('/api/v1/coffees', payload)
             setToast({ open: true, message: 'Coffee added to your collection', severity: 'success' })
             // Redirect to coffees list after a short delay
             setTimeout(() => navigate('/coffees'), 500)
