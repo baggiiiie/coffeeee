@@ -17,13 +17,15 @@ CREATE TABLE users (
 -- Coffees table
 CREATE TABLE coffees (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
     name VARCHAR(255) NOT NULL,
     origin VARCHAR(100),
     roaster VARCHAR(255),
     description TEXT,
     photo_path VARCHAR(500),
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
 -- Brew logs table
@@ -47,8 +49,11 @@ CREATE TABLE brew_logs (
 -- Indexes for performance
 CREATE INDEX idx_users_email ON users(email);
 CREATE INDEX idx_users_username ON users(username);
+CREATE INDEX idx_coffees_user_id ON coffees(user_id);
 CREATE INDEX idx_coffees_roaster ON coffees(roaster);
 CREATE INDEX idx_coffees_origin ON coffees(origin);
+-- Optional, non-unique composite index to support per-user find-or-create by name
+CREATE INDEX idx_coffees_user_id_name ON coffees(user_id, name);
 CREATE INDEX idx_brew_logs_user_id ON brew_logs(user_id);
 CREATE INDEX idx_brew_logs_coffee_id ON brew_logs(coffee_id);
 CREATE INDEX idx_brew_logs_created_at ON brew_logs(created_at);
@@ -70,16 +75,16 @@ CREATE TRIGGER update_coffees_updated_at
 
 ## Database Relationships
 
+- **One-to-Many**: User → Coffees (each coffee is owned by exactly one user)
 - **One-to-Many**: User → BrewLogs (one user can have many brew logs)
-- **One-to-Many**: Coffee → BrewLogs (one coffee can have many brew logs from different users)
-- **Many-to-Many**: Users ↔ Coffees (through brew logs, users can try many coffees and coffees can be tried by many users)
+- **One-to-Many**: Coffee → BrewLogs (each coffee can have many brew logs from its owner)
 
 ## Data Integrity Constraints
 
 - **User uniqueness**: Email and username must be unique across all users
 - **Rating validation**: Brew log ratings must be between 1-5
-- **Foreign key constraints**: Brew logs must reference valid users and coffees
-- **Cascade deletes**: When a user is deleted, all their brew logs are deleted
+- **Foreign key constraints**: Coffees must reference a valid owner user; brew logs must reference valid users and coffees
+- **Cascade deletes**: When a user is deleted, all their coffees and brew logs are deleted
 - **Cascade deletes**: When a coffee is deleted, all associated brew logs are deleted
 
 ---

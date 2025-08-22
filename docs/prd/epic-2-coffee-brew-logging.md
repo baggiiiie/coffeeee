@@ -11,7 +11,7 @@
 *   **Acceptance Criteria:**
     1.  The authenticated dashboard has a button to "Add New Coffee."
     2.  The "Add New Coffee" page has fields for coffee name, roaster, origin, etc., and a file upload for the bag photo.
-    3.  The backend has an endpoint to create a new coffee entry in the database, associated with the logged-in user.
+    3.  The backend endpoint finds-or-creates a coffee owned by the logged-in user, and stores the uploaded photo path on the coffee record.
     4.  (Stretch Goal) The backend sends the uploaded photo to an AI service to attempt to extract text and pre-fill the form fields.
 
 ---

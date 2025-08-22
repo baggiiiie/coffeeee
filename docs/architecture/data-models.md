@@ -17,13 +17,16 @@ Below are the primary data models for the application.
 | Field | Type | Description | Constraints |
 |---|---|---|---|
 | `ID` | `int64` | Unique identifier for the coffee. | Primary Key, Auto-increment |
-| `Name` | `string` | The name of the coffee. | Required, Unique (per roaster) |
+| `UserID` | `int64` | Owner user of this coffee. | Required, Foreign Key to `User.ID` |
+| `Name` | `string` | The name of the coffee. | Required |
 | `Origin` | `string` | The origin country or region of the beans. | Optional |
 | `Roaster` | `string` | The company that roasted the coffee. | Optional |
 | `Description` | `text` | General description of the coffee's flavor profile from the roaster. | Optional |
 | `PhotoPath` | `string` | Path to a general photo of the coffee bag/beans. | Optional |
 | `CreatedAt` | `datetime` | Timestamp of coffee creation in the system. | Required |
 | `UpdatedAt` | `datetime` | Timestamp of last coffee update. | Required |
+
+Note: Coffees are owned by a single user via `UserID`. The system uses per-user "find-or-create" semantics (typically matching on `Name` plus optional `Origin`/`Roaster`) rather than a global uniqueness constraint.
 
 ### BrewLog Model
 This model will store the details of each individual brewing session. The coffee-to-water ratio will be calculated from the `CoffeeWeight` and `WaterWeight` fields.
