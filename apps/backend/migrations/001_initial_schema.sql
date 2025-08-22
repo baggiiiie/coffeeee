@@ -14,6 +14,7 @@ CREATE TABLE users (
 
 -- Coffees table
 CREATE TABLE coffees (
+    user_id INTEGER NOT NULL,
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name VARCHAR(255) NOT NULL,
     origin VARCHAR(100),
@@ -21,7 +22,8 @@ CREATE TABLE coffees (
     description TEXT,
     photo_path VARCHAR(500),
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
 -- Brew logs table
@@ -47,6 +49,8 @@ CREATE INDEX idx_users_email ON users(email);
 CREATE INDEX idx_users_username ON users(username);
 CREATE INDEX idx_coffees_roaster ON coffees(roaster);
 CREATE INDEX idx_coffees_origin ON coffees(origin);
+CREATE INDEX idx_coffees_user_id ON coffees(user_id);
+CREATE INDEX idx_coffees_user_name ON coffees(user_id, name);
 CREATE INDEX idx_brew_logs_user_id ON brew_logs(user_id);
 CREATE INDEX idx_brew_logs_coffee_id ON brew_logs(coffee_id);
 CREATE INDEX idx_brew_logs_created_at ON brew_logs(created_at);

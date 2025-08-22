@@ -5,13 +5,10 @@ import (
 	"coffee-companion/backend/internal/config"
 	"database/sql"
 	"encoding/json"
-	"errors"
 	"net/http"
 	"strings"
 	"time"
 	"log"
-
-	"github.com/mattn/go-sqlite3"
 )
 
 type CoffeeHandler struct {
@@ -50,7 +47,8 @@ func (h *CoffeeHandler) Delete(w http.ResponseWriter, r *http.Request) {
 
 // CreateForMe handles POST /api/v1/users/me/coffees
 // Request JSON: { "name": string, "origin"?: string, "roaster"?: string, "description"?: string, "photoPath"?: string }
-// Behavior: find-or-create coffee, then create user_coffees link (idempotent). Returns 201 with coffee and link metadata.
+// Behavior: find-or-create a coffee owned by the current user (coffees.user_id),
+// optionally updating photo_path for the owner's record. Returns 201 with { "coffee": { ... } }.
 func (h *CoffeeHandler) CreateForMe(w http.ResponseWriter, r *http.Request) {
     w.Header().Set("Content-Type", "application/json; charset=utf-8")
 
@@ -141,12 +139,12 @@ func (h *CoffeeHandler) CreateForMe(w http.ResponseWriter, r *http.Request) {
     }
     defer func() { _ = tx.Rollback() }()
 
-    // Find existing coffee by name+origin+roaster
+    // Find existing coffee by user + name + origin + roaster
     var coffeeID int64
-    err = tx.QueryRow(`SELECT id FROM coffees WHERE name = ? AND IFNULL(origin,'') = ? AND IFNULL(roaster,'') = ?`, name, origin, roaster).Scan(&coffeeID)
+    err = tx.QueryRow(`SELECT id FROM coffees WHERE user_id = ? AND name = ? AND IFNULL(origin,'') = ? AND IFNULL(roaster,'') = ?`, userID, name, origin, roaster).Scan(&coffeeID)
     if err == sql.ErrNoRows {
-        // Create coffee
-        res, err := tx.Exec(`INSERT INTO coffees (name, origin, roaster, description) VALUES (?, ?, ?, ?)`, name, nullIfEmpty(origin), nullIfEmpty(roaster), nullIfEmpty(description))
+        // Create user-owned coffee
+        res, err := tx.Exec(`INSERT INTO coffees (user_id, name, origin, roaster, description, photo_path) VALUES (?, ?, ?, ?, ?, ?)`, userID, name, nullIfEmpty(origin), nullIfEmpty(roaster), nullIfEmpty(description), nullIfEmpty(photoPath))
         if err != nil {
             w.WriteHeader(http.StatusInternalServerError)
             _ = json.NewEncoder(w).Encode(map[string]string{
@@ -163,33 +161,13 @@ func (h *CoffeeHandler) CreateForMe(w http.ResponseWriter, r *http.Request) {
             "message": "failed to query coffee",
         })
         return
-    }
-
-    // Link user to coffee (idempotent)
-    var linkID int64
-    if photoPath != "" {
-        _, err = tx.Exec(`INSERT INTO user_coffees (user_id, coffee_id, photo_path) VALUES (?, ?, ?)`, userID, coffeeID, photoPath)
     } else {
-        _, err = tx.Exec(`INSERT INTO user_coffees (user_id, coffee_id) VALUES (?, ?)`, userID, coffeeID)
-    }
-    if err != nil {
-        var sqlErr sqlite3.Error
-        if errors.As(err, &sqlErr) && (sqlErr.ExtendedCode == sqlite3.ErrConstraintUnique || sqlErr.Code == sqlite3.ErrConstraint) {
-            // Already linked – fetch existing link id
-            _ = tx.QueryRow(`SELECT id FROM user_coffees WHERE user_id = ? AND coffee_id = ?`, userID, coffeeID).Scan(&linkID)
-        } else {
-            w.WriteHeader(http.StatusInternalServerError)
-			errMessage := "failed to link user to coffee"
-			log.Printf("%s: %s", errMessage, err)
-            _ = json.NewEncoder(w).Encode(map[string]string{
-                "code":    "DATABASE_ERROR",
-                "message": errMessage,
-            })
-            return
+        // Coffee exists for this user; update photo_path if provided
+        if photoPath != "" {
+            if _, err := tx.Exec(`UPDATE coffees SET photo_path = ? WHERE id = ? AND user_id = ?`, photoPath, coffeeID, userID); err != nil {
+                log.Printf("failed to update coffee photo_path: %v", err)
+            }
         }
-    } else {
-        // New link inserted – get its ID
-        _ = tx.QueryRow(`SELECT id FROM user_coffees WHERE user_id = ? AND coffee_id = ?`, userID, coffeeID).Scan(&linkID)
     }
 
     if err := tx.Commit(); err != nil {
@@ -201,46 +179,37 @@ func (h *CoffeeHandler) CreateForMe(w http.ResponseWriter, r *http.Request) {
         return
     }
 
-    // Read back coffee and link metadata
+    // Read back coffee and return in {"coffee":{...}}
     var out struct {
-        ID          int64   `json:"id"`
-        Name        string  `json:"name"`
-        Origin      *string `json:"origin,omitempty"`
-        Roaster     *string `json:"roaster,omitempty"`
-        Description *string `json:"description,omitempty"`
-        CreatedAt   string  `json:"createdAt"`
-        UpdatedAt   string  `json:"updatedAt"`
-        Link        any     `json:"link,omitempty"`
+        Coffee struct {
+            ID          int64   `json:"id"`
+            Name        string  `json:"name"`
+            Origin      *string `json:"origin,omitempty"`
+            Roaster     *string `json:"roaster,omitempty"`
+            Description *string `json:"description,omitempty"`
+            PhotoPath   *string `json:"photoPath,omitempty"`
+            CreatedAt   string  `json:"createdAt"`
+            UpdatedAt   string  `json:"updatedAt"`
+        } `json:"coffee"`
     }
-    out.ID = coffeeID
+    out.Coffee.ID = coffeeID
     // Fetch from DB for timestamps and canonical values
     var createdAt, updatedAt time.Time
     var dbOrigin, dbRoaster sql.NullString
-    var dbDesc sql.NullString
-    if err := h.db.QueryRow(`SELECT origin, roaster, description, created_at, updated_at FROM coffees WHERE id = ?`, coffeeID).Scan(&dbOrigin, &dbRoaster, &dbDesc, &createdAt, &updatedAt); err == nil {
-        out.Name = name
-        if dbOrigin.Valid { v := dbOrigin.String; out.Origin = &v }
-        if dbRoaster.Valid { v := dbRoaster.String; out.Roaster = &v }
-        if dbDesc.Valid { v := dbDesc.String; out.Description = &v }
-        out.CreatedAt = createdAt.Format(time.RFC3339)
-        out.UpdatedAt = updatedAt.Format(time.RFC3339)
+    var dbDesc, dbPhoto sql.NullString
+    if err := h.db.QueryRow(`SELECT origin, roaster, description, photo_path, created_at, updated_at FROM coffees WHERE id = ?`, coffeeID).Scan(&dbOrigin, &dbRoaster, &dbDesc, &dbPhoto, &createdAt, &updatedAt); err == nil {
+        out.Coffee.Name = name
+        if dbOrigin.Valid { v := dbOrigin.String; out.Coffee.Origin = &v }
+        if dbRoaster.Valid { v := dbRoaster.String; out.Coffee.Roaster = &v }
+        if dbDesc.Valid { v := dbDesc.String; out.Coffee.Description = &v }
+        if dbPhoto.Valid { v := dbPhoto.String; out.Coffee.PhotoPath = &v }
+        out.Coffee.CreatedAt = createdAt.Format(time.RFC3339)
+        out.Coffee.UpdatedAt = updatedAt.Format(time.RFC3339)
     } else {
-        out.Name = name
-        out.CreatedAt = time.Now().Format(time.RFC3339)
-        out.UpdatedAt = out.CreatedAt
-    }
-    // Link metadata
-    var linkCreated time.Time
-    var linkPhoto sql.NullString
-    if err := h.db.QueryRow(`SELECT created_at, photo_path FROM user_coffees WHERE id = ?`, linkID).Scan(&linkCreated, &linkPhoto); err == nil {
-        var link = map[string]any{
-            "id":        linkID,
-            "userId":    userID,
-            "coffeeId":  coffeeID,
-            "createdAt": linkCreated.Format(time.RFC3339),
-        }
-        if linkPhoto.Valid { link["photoPath"] = linkPhoto.String }
-        out.Link = link
+        out.Coffee.Name = name
+        if photoPath != "" { v := photoPath; out.Coffee.PhotoPath = &v }
+        out.Coffee.CreatedAt = time.Now().Format(time.RFC3339)
+        out.Coffee.UpdatedAt = out.Coffee.CreatedAt
     }
 
     w.WriteHeader(http.StatusCreated)

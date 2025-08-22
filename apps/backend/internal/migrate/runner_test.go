@@ -37,9 +37,19 @@ func TestMigrateUpAndDownUsers(t *testing.T) {
     if err := ApplyDownOne(db, migrationsDir); err != nil {
         t.Fatalf("migrate down failed: %v", err)
     }
-    // After reverting the latest migration, the base users table should still exist
-    if !tableExists(t, db, "users") {
-        t.Fatalf("expected users table to remain after reverting only latest migration")
+    // Assert outcome based on how many migrations exist
+    migs, err := DiscoverMigrations(migrationsDir)
+    if err != nil { t.Fatalf("discover migrations failed: %v", err) }
+    if len(migs) >= 2 {
+        // With multiple migrations, reverting latest should leave base tables (e.g., users)
+        if !tableExists(t, db, "users") {
+            t.Fatalf("expected users table to remain after reverting only latest migration")
+        }
+    } else {
+        // With a single migration, reverting latest may drop users
+        if tableExists(t, db, "users") {
+            t.Fatalf("expected users table to be dropped after reverting the only migration")
+        }
     }
 }
 
