@@ -12,8 +12,8 @@ import (
 )
 
 type CoffeeHandler struct {
-	db  *sql.DB
-	cfg *config.Config
+    db  *sql.DB
+    cfg *config.Config
 }
 
 func NewCoffeeHandler(db *sql.DB, cfg *config.Config) *CoffeeHandler {
@@ -21,8 +21,8 @@ func NewCoffeeHandler(db *sql.DB, cfg *config.Config) *CoffeeHandler {
 }
 
 func (h *CoffeeHandler) List(w http.ResponseWriter, r *http.Request) {
-	// TODO: Implement list coffees logic
-	w.WriteHeader(http.StatusNotImplemented)
+    // TODO: Implement list coffees logic
+    w.WriteHeader(http.StatusNotImplemented)
 }
 
 func (h *CoffeeHandler) Get(w http.ResponseWriter, r *http.Request) {
@@ -43,6 +43,72 @@ func (h *CoffeeHandler) Update(w http.ResponseWriter, r *http.Request) {
 func (h *CoffeeHandler) Delete(w http.ResponseWriter, r *http.Request) {
     // TODO: Implement delete coffee logic
     w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ListForMe handles GET /api/v1/users/me/coffees
+// Returns JSON: { "coffees": [ {id, name, origin?, roaster?, description?, photoPath?, createdAt, updatedAt}, ... ] }
+func (h *CoffeeHandler) ListForMe(w http.ResponseWriter, r *http.Request) {
+    w.Header().Set("Content-Type", "application/json; charset=utf-8")
+    userID, ok := middleware.GetAuthenticatedUserID(r.Context())
+    if !ok || userID == 0 {
+        w.WriteHeader(http.StatusUnauthorized)
+        _ = json.NewEncoder(w).Encode(map[string]string{
+            "code":    "AUTHENTICATION_ERROR",
+            "message": "Invalid or missing authentication token",
+        })
+        return
+    }
+    // Simple list without pagination for MVP
+    rows, err := h.db.Query(`SELECT id, name, origin, roaster, description, photo_path, created_at, updated_at FROM coffees WHERE user_id = ? ORDER BY created_at DESC`, userID)
+    if err != nil {
+        w.WriteHeader(http.StatusInternalServerError)
+        _ = json.NewEncoder(w).Encode(map[string]string{
+            "code":    "DATABASE_ERROR",
+            "message": "failed to query coffees",
+        })
+        return
+    }
+    defer rows.Close()
+
+    type coffeeOut struct {
+        ID          int64   `json:"id"`
+        Name        string  `json:"name"`
+        Origin      *string `json:"origin,omitempty"`
+        Roaster     *string `json:"roaster,omitempty"`
+        Description *string `json:"description,omitempty"`
+        PhotoPath   *string `json:"photoPath,omitempty"`
+        CreatedAt   string  `json:"createdAt"`
+        UpdatedAt   string  `json:"updatedAt"`
+    }
+    var list []coffeeOut
+    for rows.Next() {
+        var (
+            id int64
+            name string
+            origin, roaster, description, photo sql.NullString
+            createdAt, updatedAt time.Time
+        )
+        if err := rows.Scan(&id, &name, &origin, &roaster, &description, &photo, &createdAt, &updatedAt); err != nil {
+            w.WriteHeader(http.StatusInternalServerError)
+            _ = json.NewEncoder(w).Encode(map[string]string{
+                "code":    "DATABASE_ERROR",
+                "message": "failed to read coffees",
+            })
+            return
+        }
+        var c coffeeOut
+        c.ID = id
+        c.Name = name
+        if origin.Valid { v := origin.String; c.Origin = &v }
+        if roaster.Valid { v := roaster.String; c.Roaster = &v }
+        if description.Valid { v := description.String; c.Description = &v }
+        if photo.Valid { v := photo.String; c.PhotoPath = &v }
+        c.CreatedAt = createdAt.Format(time.RFC3339)
+        c.UpdatedAt = updatedAt.Format(time.RFC3339)
+        list = append(list, c)
+    }
+    _ = rows.Err()
+    _ = json.NewEncoder(w).Encode(map[string]any{ "coffees": list })
 }
 
 // CreateForMe handles POST /api/v1/users/me/coffees

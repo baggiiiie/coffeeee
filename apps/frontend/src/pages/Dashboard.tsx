@@ -15,6 +15,15 @@ const Dashboard: React.FC = () => {
                     </Typography>
                     <Stack direction="row" spacing={2}>
                         <Button
+                            variant="outlined"
+                            color="primary"
+                            component={RouterLink}
+                            to="/coffees"
+                            data-testid="my-coffees-link"
+                        >
+                            My Coffees
+                        </Button>
+                        <Button
                             variant="contained"
                             color="primary"
                             component={RouterLink}
