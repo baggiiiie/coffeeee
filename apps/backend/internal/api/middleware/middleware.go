@@ -1,8 +1,11 @@
 package middleware
 
 import (
+	"bytes"
 	"coffee-companion/backend/internal/utils"
 	"encoding/json"
+	"io"
+	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -10,6 +13,25 @@ import (
 )
 
 const authErrorCode = "AUTHENTICATION_ERROR"
+
+// CustomResponseWriter wraps http.ResponseWriter to capture response data
+type CustomResponseWriter struct {
+	http.ResponseWriter
+	body       bytes.Buffer
+	statusCode int
+}
+
+// WriteHeader captures the status code
+func (w *CustomResponseWriter) WriteHeader(statusCode int) {
+	w.statusCode = statusCode
+	w.ResponseWriter.WriteHeader(statusCode)
+}
+
+// Write captures the response body
+func (w *CustomResponseWriter) Write(b []byte) (int, error) {
+	w.body.Write(b)
+	return w.ResponseWriter.Write(b)
+}
 
 // AuthMiddleware validates JWT from Authorization header and injects auth context
 func AuthMiddleware(jwtSecret string) func(http.Handler) http.Handler {
@@ -71,10 +93,36 @@ func writeAuthError(w http.ResponseWriter, message string) {
 	})
 }
 
+// LoggingMiddleware logs the requested URL and body
 func LoggingMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// TODO: Implement request logging middleware
-		next.ServeHTTP(w, r)
+		log.Printf("<<<<<<< Requested URL: %s", r.URL.String())
+		bodyBytes, err := io.ReadAll(r.Body)
+		if err != nil {
+			log.Printf("Error reading body: %v", err)
+			http.Error(w, "Unable to read request body", http.StatusBadRequest)
+			return
+		}
+
+		// Restore the body for downstream handlers
+		r.Body = io.NopCloser(bytes.NewReader(bodyBytes))
+		log.Printf("Request Body: %s", string(bodyBytes))
+
+		// Wrap the ResponseWriter to capture response data
+		customWriter := &CustomResponseWriter{
+			ResponseWriter: w,
+			statusCode:     http.StatusOK,
+		}
+
+		// Call the next handler
+		next.ServeHTTP(customWriter, r)
+
+		// Log response details
+		log.Printf("Response Status: %d %s", customWriter.statusCode,
+			http.StatusText(customWriter.statusCode))
+		log.Printf("Response Headers: %v", customWriter.Header())
+		log.Printf("Response Body: %s", customWriter.body.String())
+		log.Printf(">>>>>>> End of Request: %s", r.URL.String())
 	})
 }
 
