@@ -127,7 +127,7 @@ Response (updated; no `link`):
 ## 7) Success Criteria
 
 - Database contains coffees with non-null `user_id`; `user_coffees` table removed.
-- POST `/api/v1/users/me/coffees` is idempotent per user and returns coffee only.
+- POST `/api/v1/coffees` is idempotent per user and returns coffee only.
 - Listing and access control respect `user_id` on coffees.
 - All tests pass; no references to `user_coffees` remain.
 

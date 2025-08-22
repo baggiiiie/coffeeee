@@ -16,8 +16,8 @@ Coffees are owned by the creating user (`coffees.user_id`). Creation is per-user
 
 | Endpoint | Description | Request Body | Response Body | Auth Required |
 |---|---|---|---|---|
-| `POST /users/me/coffees` | Find-or-create a coffee owned by the authenticated user. | `{ "name" (req), "origin"?, "roaster"?, "description"?, "photoPath"? }` | Full `Coffee` object (including `userId`, `photoPath`) | Yes |
-| `GET /users/me/coffees` | List coffees owned by the authenticated user. | | `[ Coffee ]` | Yes |
+| `POST /coffees` | Find-or-create a coffee owned by the authenticated user. | `{ "name" (req), "origin"?, "roaster"?, "description"?, "photoPath"? }` | Full `Coffee` object (including `userId`, `photoPath`) | Yes |
+| `GET /coffees` | List coffees owned by the authenticated user. | | `[ Coffee ]` | Yes |
 | `GET /coffees/{id}` | Get a coffee by ID (owner-only). | | Full `Coffee` object | Yes (Owner only) |
 
 Notes:
