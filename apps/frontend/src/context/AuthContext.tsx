@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode, useRef } from 'react'
+import React, { createContext, useContext, useState, useEffect, ReactNode, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { User, CreateUserRequest, LoginRequest, LoginResponse, UpdateUserRequest } from '@coffee-companion/shared-types'
 import api, { resetLogoutGuard } from '../utils/api'
@@ -41,37 +41,28 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const [toastMessage, setToastMessage] = useState('')
     const navigate = useNavigate()
 
-    // Load token from localStorage on mount and migrate legacy key if present
-    useEffect(() => {
-        const legacyToken = localStorage.getItem('token')
-        const savedToken = localStorage.getItem(TOKEN_KEY)
-        if (!savedToken && legacyToken) {
-            localStorage.setItem(TOKEN_KEY, legacyToken)
-            localStorage.removeItem('token')
+    const logout = useCallback((opts?: { reason?: 'token-expired' | 'manual' }) => {
+        if (isLoggingOutRef.current) return
+        isLoggingOutRef.current = true
+
+        setUser(null)
+        setToken(null)
+        setIsAuthenticated(false)
+        localStorage.removeItem(TOKEN_KEY)
+        // Also remove any legacy key if present
+        localStorage.removeItem('token')
+
+        if (opts?.reason === 'token-expired') {
+            setToastMessage('Session expired. Please sign in again.')
+            setToastOpen(true)
         }
 
-        const activeToken = savedToken || legacyToken
-        if (activeToken) {
-            setToken(activeToken)
-            setIsAuthenticated(true)
-            // Hydrate user data from token
-            hydrateUser(activeToken)
-        } else {
-            setIsBootstrapping(false)
-        }
-    }, [])
+        // Redirect to login page
+        navigate('/login', { replace: true })
+        // Guard stays engaged until next successful auth; reset in login/hydrate success
+    }, [navigate])
 
-    // Listen for global auth:logout events (e.g., Axios 401 handler)
-    useEffect(() => {
-        const handler = (e: Event) => {
-            const ce = e as CustomEvent<{ reason?: 'token-expired' }>
-            logout({ reason: ce.detail?.reason === 'token-expired' ? 'token-expired' : 'manual' })
-        }
-        window.addEventListener('auth:logout', handler as EventListener)
-        return () => window.removeEventListener('auth:logout', handler as EventListener)
-    }, [])
-
-    const hydrateUser = async (token: string) => {
+    const hydrateUser = useCallback(async (token: string) => {
         try {
             // Set the token in localStorage to ensure API interceptor picks it up
             localStorage.setItem(TOKEN_KEY, token)
@@ -96,7 +87,37 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         } finally {
             setIsBootstrapping(false)
         }
-    }
+    }, [logout])
+
+    // Load token from localStorage on mount and migrate legacy key if present
+    useEffect(() => {
+        const legacyToken = localStorage.getItem('token')
+        const savedToken = localStorage.getItem(TOKEN_KEY)
+        if (!savedToken && legacyToken) {
+            localStorage.setItem(TOKEN_KEY, legacyToken)
+            localStorage.removeItem('token')
+        }
+
+        const activeToken = savedToken || legacyToken
+        if (activeToken) {
+            setToken(activeToken)
+            setIsAuthenticated(true)
+            // Hydrate user data from token
+            hydrateUser(activeToken)
+        } else {
+            setIsBootstrapping(false)
+        }
+    }, [hydrateUser])
+
+    // Listen for global auth:logout events (e.g., Axios 401 handler)
+    useEffect(() => {
+        const handler = (e: Event) => {
+            const ce = e as CustomEvent<{ reason?: 'token-expired' }>
+            logout({ reason: ce.detail?.reason === 'token-expired' ? 'token-expired' : 'manual' })
+        }
+        window.addEventListener('auth:logout', handler as EventListener)
+        return () => window.removeEventListener('auth:logout', handler as EventListener)
+    }, [logout])
 
     const login = async (email: string, password: string) => {
         try {
@@ -114,27 +135,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             console.error('Login failed:', error)
             throw error
         }
-    }
-
-    const logout = (opts?: { reason?: 'token-expired' | 'manual' }) => {
-        if (isLoggingOutRef.current) return
-        isLoggingOutRef.current = true
-
-        setUser(null)
-        setToken(null)
-        setIsAuthenticated(false)
-        localStorage.removeItem(TOKEN_KEY)
-        // Also remove any legacy key if present
-        localStorage.removeItem('token')
-
-        if (opts?.reason === 'token-expired') {
-            setToastMessage('Session expired. Please sign in again.')
-            setToastOpen(true)
-        }
-
-        // Redirect to login page
-        navigate('/login', { replace: true })
-        // Guard stays engaged until next successful auth; reset in login/hydrate success
     }
 
     const register = async (userData: CreateUserRequest) => {
