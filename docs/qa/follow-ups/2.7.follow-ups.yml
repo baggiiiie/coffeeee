@@ -1,0 +1,101 @@
+schema: 1
+story: "2.7"
+story_title: "User-Scoped Coffees Schema & API Refactor"
+created_by: "Bob (Scrum Master)"
+created_at: "2025-08-22T00:00:00Z"
+context:
+  gate: "CHECKLIST"
+  reason: "Ensure all related artifacts are updated consistently with user-owned coffees and removal of user_coffees."
+
+tasks:
+  - id: DEV-CHK-001
+    title: "Edit 001 schema: add user_id to coffees + indexes"
+    type: task
+    owner: backend
+    priority: high
+    description: |
+      Update `apps/backend/migrations/001_initial_schema.sql` so `coffees` includes `user_id INTEGER NOT NULL` with FK to `users(id)`; add indexes `idx_coffees_user_id` and `idx_coffees_user_name`.
+    acceptance:
+      - `coffees` table in 001 includes `user_id INTEGER NOT NULL`
+      - FK exists: `FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE`
+      - Indexes exist: `idx_coffees_user_id`, `idx_coffees_user_name`
+
+  - id: DEV-CHK-002
+    title: "Remove migration 002 user_coffees up/down"
+    type: chore
+    owner: backend
+    priority: high
+    description: |
+      Delete `apps/backend/migrations/002_user_coffees.up.sql` and `.down.sql` from the repository.
+    acceptance:
+      - Files removed from repo
+      - No references to 002 remain in code or docs
+
+  - id: DEV-CHK-003
+    title: "Refactor CreateForMe to user-owned coffees"
+    type: task
+    owner: backend
+    priority: high
+    description: |
+      Update `apps/backend/internal/api/handlers/coffee.go#CreateForMe` to find-or-create by `(user_id, name, origin?, roaster?)`, insert with `user_id` and `photo_path`, and return only `coffee`.
+    acceptance:
+      - Query uses `WHERE user_id = ? AND name = ? AND IFNULL(origin,'') = ? AND IFNULL(roaster,'') = ?`
+      - Insert includes `user_id` and `photo_path`
+      - No `user_coffees` code paths remain; response omits `link`
+
+  - id: DOC-CHK-004
+    title: "Update database schema doc"
+    type: doc
+    owner: architecture
+    priority: medium
+    description: |
+      Edit `docs/architecture/database-schema.md` to show `coffees` with `user_id`, add relevant indexes, and update relationships to reflect user-owned coffees (remove join-table references).
+    acceptance:
+      - `coffees` includes `user_id` in schema snippet
+      - Relationships list: User→Coffees (one-to-many), Coffee→BrewLogs (one-to-many), User→BrewLogs (one-to-many)
+      - No references to `user_coffees`
+
+  - id: DOC-CHK-005
+    title: "PRD Story 2.1 AC clarification"
+    type: doc
+    owner: product
+    priority: medium
+    description: |
+      In `docs/prd/epic-2-coffee-brew-logging.md`, adjust Story 2.1 Acceptance Criterion 3 to say the backend find-or-creates a coffee owned by the logged-in user and stores optional photo on the coffee record.
+    acceptance:
+      - AC (3) wording matches the approved proposal
+
+  - id: DOC-CHK-006
+    title: "Revise Story 2.6 to coffee-owned photos"
+    type: doc
+    owner: scrum-master
+    priority: medium
+    description: |
+      Ensure `docs/stories/2.6.story.md` reflects photo storage on `coffees.photo_path`, endpoint returns updated coffee, and owner check uses `coffees.user_id`.
+    acceptance:
+      - Story 2.6 acceptance criteria and dev notes match coffee-owned photo model
+
+  - id: TEST-CHK-007
+    title: "Backend tests for idempotency and ownership"
+    type: test
+    owner: backend
+    priority: high
+    description: |
+      Add/adjust tests: same user + same fields → same coffee; different users → distinct coffees; verify `coffees.photo_path` update only for owner.
+    acceptance:
+      - Tests implemented and passing
+      - No tests refer to `user_coffees`
+
+  - id: QA-CHK-008
+    title: "Repo hygiene: remove user_coffees references"
+    type: chore
+    owner: backend
+    priority: medium
+    description: |
+      Search repository for `user_coffees` and remove/refactor any remaining references in code and docs.
+    acceptance:
+      - `rg -n "user_coffees"` returns no matches (excluding git history)
+
+notes:
+  - "Coordinate with frontend to drop any `link` usage and consume `coffee.photoPath` in responses."
+
