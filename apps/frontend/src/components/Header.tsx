@@ -31,7 +31,7 @@ const Header: React.FC = () => {
                             </Button>
                             <Button
                                 color="inherit"
-                                onClick={logout}
+                                onClick={() => logout({ reason: 'manual' })}
                                 data-testid="logout-button"
                             >
                                 Logout
