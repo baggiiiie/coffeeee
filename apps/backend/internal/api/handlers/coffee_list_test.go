@@ -50,15 +50,15 @@ func setupListTestDB(t *testing.T) *sql.DB {
     return db
 }
 
-func TestListForMe_ReturnsOnlyUserCoffees(t *testing.T) {
+func TestListForUser_ReturnsOnlyUserCoffees(t *testing.T) {
     db := setupListTestDB(t)
     defer db.Close()
     h := NewCoffeeHandler(db, &config.Config{})
 
-    req := httptest.NewRequest("GET", "/api/v1/users/me/coffees", nil)
+    req := httptest.NewRequest("GET", "/api/v1/coffees", nil)
     req = req.WithContext(middleware.WithAuthenticatedUserID(req.Context(), 1))
     w := httptest.NewRecorder()
-    h.ListForMe(w, req)
+    h.ListForUser(w, req)
     if w.Code != http.StatusOK {
         t.Fatalf("expected 200, got %d", w.Code)
     }

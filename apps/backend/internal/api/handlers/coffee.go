@@ -45,9 +45,9 @@ func (h *CoffeeHandler) Delete(w http.ResponseWriter, r *http.Request) {
     w.WriteHeader(http.StatusNotImplemented)
 }
 
-// ListForMe handles GET /api/v1/users/me/coffees
+// ListForUser handles GET /api/v1/coffees
 // Returns JSON: { "coffees": [ {id, name, origin?, roaster?, description?, photoPath?, createdAt, updatedAt}, ... ] }
-func (h *CoffeeHandler) ListForMe(w http.ResponseWriter, r *http.Request) {
+func (h *CoffeeHandler) ListForUser(w http.ResponseWriter, r *http.Request) {
     w.Header().Set("Content-Type", "application/json; charset=utf-8")
     userID, ok := middleware.GetAuthenticatedUserID(r.Context())
     if !ok || userID == 0 {
@@ -62,6 +62,7 @@ func (h *CoffeeHandler) ListForMe(w http.ResponseWriter, r *http.Request) {
     rows, err := h.db.Query(`SELECT id, name, origin, roaster, description, photo_path, created_at, updated_at FROM coffees WHERE user_id = ? ORDER BY created_at DESC`, userID)
     if err != nil {
         w.WriteHeader(http.StatusInternalServerError)
+		log.Printf("failed to query coffees for user %d: %v", userID, err)
         _ = json.NewEncoder(w).Encode(map[string]string{
             "code":    "DATABASE_ERROR",
             "message": "failed to query coffees",
@@ -111,11 +112,11 @@ func (h *CoffeeHandler) ListForMe(w http.ResponseWriter, r *http.Request) {
     _ = json.NewEncoder(w).Encode(map[string]any{ "coffees": list })
 }
 
-// CreateForMe handles POST /api/v1/users/me/coffees
+// CreateForUser handles POST /api/v1/coffees
 // Request JSON: { "name": string, "origin"?: string, "roaster"?: string, "description"?: string, "photoPath"?: string }
 // Behavior: find-or-create a coffee owned by the current user (coffees.user_id),
 // optionally updating photo_path for the owner's record. Returns 201 with { "coffee": { ... } }.
-func (h *CoffeeHandler) CreateForMe(w http.ResponseWriter, r *http.Request) {
+func (h *CoffeeHandler) CreateForUser(w http.ResponseWriter, r *http.Request) {
     w.Header().Set("Content-Type", "application/json; charset=utf-8")
 
     userID, ok := middleware.GetAuthenticatedUserID(r.Context())
@@ -222,6 +223,7 @@ func (h *CoffeeHandler) CreateForMe(w http.ResponseWriter, r *http.Request) {
         coffeeID, _ = res.LastInsertId()
     } else if err != nil {
         w.WriteHeader(http.StatusInternalServerError)
+		log.Printf("failed to query coffee for user %d: %v", userID, err)
         _ = json.NewEncoder(w).Encode(map[string]string{
             "code":    "DATABASE_ERROR",
             "message": "failed to query coffee",

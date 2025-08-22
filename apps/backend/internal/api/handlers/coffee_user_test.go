@@ -62,30 +62,30 @@ func setupCoffeeTestDB(t *testing.T) *sql.DB {
     return db
 }
 
-func TestCreateForMe_Validation(t *testing.T) {
+func TestCreateForUser_Validation(t *testing.T) {
     db := setupCoffeeTestDB(t)
     defer db.Close()
     h := NewCoffeeHandler(db, &config.Config{})
 
-    req := httptest.NewRequest("POST", "/api/v1/users/me/coffees", bytes.NewBufferString(`{}`))
+    req := httptest.NewRequest("POST", "/api/v1/coffees", bytes.NewBufferString(`{}`))
     req = req.WithContext(middleware.WithAuthenticatedUserID(req.Context(), 1))
     w := httptest.NewRecorder()
-    h.CreateForMe(w, req)
+    h.CreateForUser(w, req)
     if w.Code != http.StatusBadRequest {
         t.Fatalf("expected 400, got %d", w.Code)
     }
 }
 
-func TestCreateForMe_IdempotentPerUser_AndPhotoUpdate(t *testing.T) {
+func TestCreateForUser_IdempotentPerUser_AndPhotoUpdate(t *testing.T) {
     db := setupCoffeeTestDB(t)
     defer db.Close()
     h := NewCoffeeHandler(db, &config.Config{})
 
     payload := `{"name":"Ethiopia Yirgacheffe","roaster":"Blue Bottle","origin":"Ethiopia","description":"Floral"}`
-    req := httptest.NewRequest("POST", "/api/v1/users/me/coffees", bytes.NewBufferString(payload))
+    req := httptest.NewRequest("POST", "/api/v1/coffees", bytes.NewBufferString(payload))
     req = req.WithContext(middleware.WithAuthenticatedUserID(req.Context(), 1))
     w := httptest.NewRecorder()
-    h.CreateForMe(w, req)
+    h.CreateForUser(w, req)
     if w.Code != http.StatusCreated {
         t.Fatalf("expected 201, got %d", w.Code)
     }
@@ -99,10 +99,10 @@ func TestCreateForMe_IdempotentPerUser_AndPhotoUpdate(t *testing.T) {
     }
     // Idempotent per user: second call returns same coffee; also updates photo_path
     payload2 := `{"name":"Ethiopia Yirgacheffe","roaster":"Blue Bottle","origin":"Ethiopia","description":"Floral","photoPath":"uploads/coffee-photos/1/`+time.Now().Format("20060102150405")+`/p.jpg"}`
-    req2 := httptest.NewRequest("POST", "/api/v1/users/me/coffees", bytes.NewBufferString(payload2))
+    req2 := httptest.NewRequest("POST", "/api/v1/coffees", bytes.NewBufferString(payload2))
     req2 = req2.WithContext(middleware.WithAuthenticatedUserID(req2.Context(), 1))
     w2 := httptest.NewRecorder()
-    h.CreateForMe(w2, req2)
+    h.CreateForUser(w2, req2)
     if w2.Code != http.StatusCreated {
         t.Fatalf("expected 201 on second call, got %d", w2.Code)
     }
@@ -119,27 +119,27 @@ func TestCreateForMe_IdempotentPerUser_AndPhotoUpdate(t *testing.T) {
     }
 }
 
-func TestCreateForMe_DistinctAcrossUsers(t *testing.T) {
+func TestCreateForUser_DistinctAcrossUsers(t *testing.T) {
     db := setupCoffeeTestDB(t)
     defer db.Close()
     h := NewCoffeeHandler(db, &config.Config{})
 
     payload := `{"name":"Ethiopia Yirgacheffe","roaster":"Blue Bottle","origin":"Ethiopia"}`
     // User 1
-    req1 := httptest.NewRequest("POST", "/api/v1/users/me/coffees", bytes.NewBufferString(payload))
+    req1 := httptest.NewRequest("POST", "/api/v1/coffees", bytes.NewBufferString(payload))
     req1 = req1.WithContext(middleware.WithAuthenticatedUserID(req1.Context(), 1))
     w1 := httptest.NewRecorder()
-    h.CreateForMe(w1, req1)
+    h.CreateForUser(w1, req1)
     if w1.Code != http.StatusCreated { t.Fatalf("u1 expected 201, got %d", w1.Code) }
     var r1 struct{ Coffee map[string]any `json:"coffee"` }
     _ = json.NewDecoder(w1.Body).Decode(&r1)
     id1, _ := r1.Coffee["id"].(float64)
 
     // User 2 same payload → different coffee id
-    req2 := httptest.NewRequest("POST", "/api/v1/users/me/coffees", bytes.NewBufferString(payload))
+    req2 := httptest.NewRequest("POST", "/api/v1/coffees", bytes.NewBufferString(payload))
     req2 = req2.WithContext(middleware.WithAuthenticatedUserID(req2.Context(), 2))
     w2 := httptest.NewRecorder()
-    h.CreateForMe(w2, req2)
+    h.CreateForUser(w2, req2)
     if w2.Code != http.StatusCreated { t.Fatalf("u2 expected 201, got %d", w2.Code) }
     var r2 struct{ Coffee map[string]any `json:"coffee"` }
     _ = json.NewDecoder(w2.Body).Decode(&r2)
