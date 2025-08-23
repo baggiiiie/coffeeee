@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react'
 import api from './api'
+import type { BrewRecommendationRequest, BrewRecommendationResponse } from '@coffee-companion/shared-types'
 
 export type AIAnswer = { id: string; value: string }
 export type AIContext = { brewMethod?: string }
@@ -37,7 +38,17 @@ export function useAI() {
         }
     }, [postWithRetry])
 
-    return { getNextQuestion, loading }
+    const getBrewRecommendation = useCallback(async (req: BrewRecommendationRequest, tries: number = 2): Promise<BrewRecommendationResponse> => {
+        setLoading(true)
+        try {
+            const data = await postWithRetry('/api/v1/ai/recommendation', req, tries)
+            return data as BrewRecommendationResponse
+        } finally {
+            setLoading(false)
+        }
+    }, [postWithRetry])
+
+    return { getNextQuestion, getBrewRecommendation, loading }
 }
 
 function mapError(err: any): Error {

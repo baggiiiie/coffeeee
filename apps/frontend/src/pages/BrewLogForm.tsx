@@ -4,6 +4,8 @@ import { Box, Typography, Paper, TextField, Button, Stack, Snackbar, Alert, Menu
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import api from '../utils/api'
 import AITastingAssistant from '../components/AITastingAssistant'
+import AIBrewRecommendationDialog from '../components/AIBrewRecommendationDialog'
+import { Alert as MuiAlert } from '@mui/material'
 
 const BrewLogForm: React.FC = () => {
     const navigate = useNavigate()
@@ -20,6 +22,8 @@ const BrewLogForm: React.FC = () => {
     const [submitting, setSubmitting] = useState(false)
     const [toast, setToast] = useState<{open: boolean; message: string; severity: 'success' | 'error'}>({ open: false, message: '', severity: 'success' })
     const [aiOpen, setAiOpen] = useState(false)
+    const [recoOpen, setRecoOpen] = useState(false)
+    const [showRecoCTA, setShowRecoCTA] = useState(false)
 
     const ratio = useMemo(() => {
         const cw = parseFloat(coffeeWeight)
@@ -59,7 +63,7 @@ const BrewLogForm: React.FC = () => {
             if (rating.trim() !== '') payload.rating = parseInt(rating, 10)
             await api.post('/api/v1/brewlogs', payload)
             setToast({ open: true, message: 'Brew log saved', severity: 'success' })
-            setTimeout(() => navigate(`/coffees/${coffeeId}`), 400)
+            setShowRecoCTA(true)
         } catch (err: any) {
             const msg = err?.response?.data?.message || 'Failed to save brew log'
             setToast({ open: true, message: msg, severity: 'error' })
@@ -75,6 +79,13 @@ const BrewLogForm: React.FC = () => {
                 Log New Brew
             </Typography>
             <Paper sx={{ p: 3 }}>
+                {showRecoCTA && (
+                    <MuiAlert severity="info" sx={{ mb: 2 }} data-testid="next-reco-cta"
+                        action={<Button variant="outlined" size="small" onClick={() => setRecoOpen(true)}>Get a recommendation for next time</Button>}>
+                        Brew saved. Want guidance for your next brew?
+                        <Button size="small" onClick={() => setShowRecoCTA(false)} sx={{ ml: 1 }}>Dismiss</Button>
+                    </MuiAlert>
+                )}
                 <Box component="form" onSubmit={onSubmit} noValidate>
                     <Stack spacing={2}>
                         <TextField label="Coffee ID" value={coffeeId} disabled fullWidth data-testid="coffee-id" />
@@ -119,6 +130,25 @@ const BrewLogForm: React.FC = () => {
             onComplete={(notes) => {
                 setTastingNotes(notes)
                 setAiOpen(false)
+            }}
+        />
+        <AIBrewRecommendationDialog
+            open={recoOpen}
+            brewLog={{
+                coffeeId,
+                brewMethod: brewMethod || undefined,
+                coffeeWeight: coffeeWeight ? parseFloat(coffeeWeight) : undefined,
+                waterWeight: waterWeight ? parseFloat(waterWeight) : undefined,
+                grindSize: grindSize || undefined,
+                waterTemperature: waterTemp ? parseFloat(waterTemp) : undefined,
+                brewTime: brewTime ? parseInt(brewTime, 10) : undefined,
+                tastingNotes: tastingNotes || undefined,
+                rating: rating ? parseInt(rating, 10) : undefined,
+            }}
+            onClose={() => setRecoOpen(false)}
+            onApply={() => {
+                setToast({ open: true, message: 'Recommendation applied to draft brew', severity: 'success' })
+                setRecoOpen(false)
             }}
         />
         </>

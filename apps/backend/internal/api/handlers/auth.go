@@ -6,6 +6,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"log"
 	"net/http"
 	"net/mail"
 	"strings"
@@ -131,18 +132,18 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "invalid JSON body", http.StatusBadRequest)
 		return
 	}
-    email := strings.TrimSpace(strings.ToLower(body.Email))
-    password := body.Password
-    if email == "" || password == "" {
-        http.Error(w, "email and password are required", http.StatusBadRequest)
-        return
-    }
+	email := strings.TrimSpace(strings.ToLower(body.Email))
+	password := body.Password
+	if email == "" || password == "" {
+		http.Error(w, "email and password are required", http.StatusBadRequest)
+		return
+	}
 
-    // Validate email format similar to Login handler
-    if _, err := mail.ParseAddress(email); err != nil {
-        http.Error(w, "invalid email format", http.StatusBadRequest)
-        return
-    }
+	// Validate email format similar to Login handler
+	if _, err := mail.ParseAddress(email); err != nil {
+		http.Error(w, "invalid email format", http.StatusBadRequest)
+		return
+	}
 
 	salt, err := utils.GenerateSalt(16)
 	if err != nil {
@@ -166,11 +167,14 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		if errors.As(err, &sqlErr) {
 			// Unique constraint violation
 			if sqlErr.ExtendedCode == sqlite3.ErrConstraintUnique || sqlErr.Code == sqlite3.ErrConstraint {
-				http.Error(w, "email already in use", http.StatusConflict)
+				errMsg := "email already in use"
+				http.Error(w, errMsg, http.StatusConflict)
 				return
 			}
 		}
-		http.Error(w, "failed to create user", http.StatusInternalServerError)
+		errMsg := "failed to create user"
+		log.Printf("%s: %s", errMsg, err)
+		http.Error(w, errMsg, http.StatusInternalServerError)
 		return
 	}
 	id, _ := res.LastInsertId()

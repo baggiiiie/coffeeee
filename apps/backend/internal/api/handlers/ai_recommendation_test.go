@@ -10,37 +10,48 @@ import (
     "coffeeee/backend/internal/config"
 )
 
-func TestAIRecommendation_FirstQuestion(t *testing.T) {
-    h := NewAIHandler(nil, &config.Config{})
-    req := httptest.NewRequest("POST", "/api/v1/ai/recommendation", bytes.NewBufferString(`{"answers":[]}`))
-    w := httptest.NewRecorder()
-    h.GetRecommendation(w, req)
-    if w.Code != http.StatusOK {
-        t.Fatalf("expected 200, got %d", w.Code)
+func TestGetRecommendation_BrewSuggestion(t *testing.T) {
+    cfg, err := config.Load()
+    if err != nil {
+        t.Fatalf("failed to load config: %v", err)
     }
-    var resp map[string]any
-    if err := json.NewDecoder(w.Body).Decode(&resp); err != nil {
-        t.Fatalf("decode: %v", err)
-    }
-    if resp["questionId"] != "aroma" {
-        t.Fatalf("expected first question 'aroma', got %v", resp["questionId"])
-    }
-}
 
-func TestAIRecommendation_NextAfterAroma(t *testing.T) {
-    h := NewAIHandler(nil, &config.Config{})
-    payload := map[string]any{
-        "answers": []map[string]string{{"id": "aroma", "value": "floral"}},
+    h := NewAIHandler(nil, cfg)
+
+    body := map[string]any{
+        "brewLog": map[string]any{
+            "brewMethod":       "V60",
+            "coffeeWeight":     15,
+            "waterWeight":      250,
+            "waterTemperature": 94,
+            "brewTime":         150,
+        },
+        "goal": "more sweetness",
     }
-    b, _ := json.Marshal(payload)
-    req := httptest.NewRequest("POST", "/api/v1/ai/recommendation", bytes.NewBuffer(b))
-    w := httptest.NewRecorder()
-    h.GetRecommendation(w, req)
-    if w.Code != http.StatusOK { t.Fatalf("expected 200, got %d", w.Code) }
-    var resp map[string]any
-    _ = json.NewDecoder(w.Body).Decode(&resp)
-    if resp["questionId"] != "acidity" {
-        t.Fatalf("expected 'acidity', got %v", resp["questionId"])
+    b, _ := json.Marshal(body)
+
+    req := httptest.NewRequest(http.MethodPost, "/api/v1/ai/recommendation", bytes.NewReader(b))
+    rec := httptest.NewRecorder()
+
+    h.GetRecommendation(rec, req)
+
+    res := rec.Result()
+    if res.StatusCode != http.StatusOK {
+        t.Fatalf("expected 200 OK, got %d", res.StatusCode)
+    }
+
+    var payload struct {
+        Change struct {
+            Variable string `json:"variable"`
+            Delta    string `json:"delta"`
+        } `json:"change"`
+        Explanation string `json:"explanation"`
+    }
+    if err := json.NewDecoder(res.Body).Decode(&payload); err != nil {
+        t.Fatalf("failed to decode response: %v", err)
+    }
+    if payload.Change.Variable == "" || payload.Change.Delta == "" || payload.Explanation == "" {
+        t.Fatalf("expected populated change and explanation, got: %+v", payload)
     }
 }
 

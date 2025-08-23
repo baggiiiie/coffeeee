@@ -4,3 +4,4 @@ export * from './coffee';
 export * from './brewlog';
 export * from './api';
 export * from './common';
+export * from './ai';

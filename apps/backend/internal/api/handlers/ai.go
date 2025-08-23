@@ -4,6 +4,7 @@ import (
     "database/sql"
     "encoding/json"
     "net/http"
+    "strings"
 
     "coffeeee/backend/internal/config"
 )
@@ -30,19 +31,42 @@ func (h *AIHandler) GetRecommendation(w http.ResponseWriter, r *http.Request) {
     type Context struct {
         BrewMethod *string `json:"brewMethod,omitempty"`
     }
+    type BrewLogPartial struct {
+        CoffeeID         *int     `json:"coffeeId,omitempty"`
+        BrewMethod       *string  `json:"brewMethod,omitempty"`
+        CoffeeWeight     *float64 `json:"coffeeWeight,omitempty"`
+        WaterWeight      *float64 `json:"waterWeight,omitempty"`
+        GrindSize        *string  `json:"grindSize,omitempty"`
+        WaterTemperature *float64 `json:"waterTemperature,omitempty"`
+        BrewTime         *int     `json:"brewTime,omitempty"`
+        TastingNotes     *string  `json:"tastingNotes,omitempty"`
+        Rating           *int     `json:"rating,omitempty"`
+    }
     type Req struct {
-        Answers []Answer `json:"answers"`
+        // Story 2.4 interactive tasting flow
+        Answers []Answer `json:"answers,omitempty"`
         Context *Context `json:"context,omitempty"`
+        // Story 3.2 brew recommendation flow
+        BrewLog *BrewLogPartial `json:"brewLog,omitempty"`
+        Goal    string          `json:"goal,omitempty"`
     }
     type Option struct {
         Label string `json:"label"`
         Value string `json:"value"`
     }
-    type Resp struct {
+    type QAResp struct {
         QuestionID string   `json:"questionId"`
         Text       string   `json:"text"`
         Options    []Option `json:"options"`
         Hint       *string  `json:"hint,omitempty"`
+    }
+    type Change struct {
+        Variable string `json:"variable"`
+        Delta    string `json:"delta"`
+    }
+    type RecResp struct {
+        Change      Change `json:"change"`
+        Explanation string `json:"explanation"`
     }
 
     w.Header().Set("Content-Type", "application/json")
@@ -54,12 +78,43 @@ func (h *AIHandler) GetRecommendation(w http.ResponseWriter, r *http.Request) {
         return
     }
 
+    // If brewLog+goal present, execute Story 3.2 flow
+    if body.BrewLog != nil || strings.TrimSpace(body.Goal) != "" {
+        trimmed := strings.TrimSpace(body.Goal)
+        if body.BrewLog != nil && trimmed == "" {
+            w.WriteHeader(http.StatusBadRequest)
+            _ = json.NewEncoder(w).Encode(map[string]string{"code": "BAD_REQUEST", "message": "goal is required"})
+            return
+        }
+        goal := strings.ToLower(trimmed)
+        // Simple deterministic rules for demo/testing
+        var change Change
+        var explanation string
+        switch {
+        case strings.Contains(goal, "sweet"):
+            change = Change{Variable: "grind", Delta: "2 clicks finer"}
+            explanation = "A slightly finer grind increases extraction and can enhance perceived sweetness."
+        case strings.Contains(goal, "bitter"):
+            change = Change{Variable: "waterTemperature", Delta: "-2°C"}
+            explanation = "Lowering water temperature slightly can reduce over-extraction bitterness."
+        case strings.Contains(goal, "strong") || strings.Contains(goal, "strength"):
+            change = Change{Variable: "coffeeWeight", Delta: "+1g per 15g"}
+            explanation = "Increasing dose relative to water raises strength without extending brew time."
+        default:
+            change = Change{Variable: "grind", Delta: "1 click coarser"}
+            explanation = "A small grind adjustment is a safe single-variable test to move flavor balance."
+        }
+        w.WriteHeader(http.StatusOK)
+        _ = json.NewEncoder(w).Encode(RecResp{Change: change, Explanation: explanation})
+        return
+    }
+
+    // Otherwise fallback to Story 2.4 interactive tasting assistant
     // Simple deterministic branching for testing/demo purposes.
-    // In production, this would call an AI provider.
-    var resp Resp
+    var resp QAResp
     if len(body.Answers) == 0 {
         hint := "Start by identifying the aroma profile."
-        resp = Resp{
+        resp = QAResp{
             QuestionID: "aroma",
             Text:       "Which aroma best describes the coffee?",
             Options: []Option{{Label: "Floral", Value: "floral"}, {Label: "Nutty", Value: "nutty"}, {Label: "Fruity", Value: "fruity"}},
@@ -67,13 +122,13 @@ func (h *AIHandler) GetRecommendation(w http.ResponseWriter, r *http.Request) {
         }
     } else if body.Answers[len(body.Answers)-1].ID == "aroma" {
         // Next question after aroma
-        resp = Resp{
+        resp = QAResp{
             QuestionID: "acidity",
             Text:       "How would you rate the acidity?",
             Options: []Option{{Label: "Low", Value: "low"}, {Label: "Medium", Value: "medium"}, {Label: "High", Value: "high"}},
         }
     } else {
-        resp = Resp{
+        resp = QAResp{
             QuestionID: "body",
             Text:       "What is the body like?",
             Options: []Option{{Label: "Light", Value: "light"}, {Label: "Medium", Value: "medium"}, {Label: "Full", Value: "full"}},
