@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react'
-import { Box, Breadcrumbs, Link, Typography, List, ListItem, ListItemText } from '@mui/material'
-import { Link as RouterLink, useParams } from 'react-router-dom'
+import { Box, Breadcrumbs, Link, Typography, List, ListItem, ListItemText, Button, Stack } from '@mui/material'
+import { Link as RouterLink, useNavigate, useParams } from 'react-router-dom'
 import { findGuideBySlug } from './guides/guideData'
 
 const Img: React.FC<{ src?: string; alt: string }> = ({ src, alt }) => (
@@ -19,6 +19,7 @@ const Img: React.FC<{ src?: string; alt: string }> = ({ src, alt }) => (
 )
 
 const GuideDetail: React.FC = () => {
+    const navigate = useNavigate()
     const { slug = '' } = useParams<{ slug: string }>()
     const guide = findGuideBySlug(slug)
     const headingRef = useRef<HTMLHeadingElement>(null)
@@ -43,6 +44,11 @@ const GuideDetail: React.FC = () => {
         )
     }
 
+    const onStartBrewing = () => {
+        const pre = guide.brewPrefill || { brewMethod: guide.brewer }
+        navigate('/brew-logs/new', { state: { initialBrewParams: pre, fromGuideTitle: guide.title } })
+    }
+
     return (
         <Box>
             <Breadcrumbs aria-label="breadcrumb" sx={{ mb: 2 }}>
@@ -57,6 +63,11 @@ const GuideDetail: React.FC = () => {
             <Typography variant="subtitle1" color="text.secondary" gutterBottom>
                 {guide.brewer} • {guide.description}
             </Typography>
+            <Stack direction="row" spacing={2} sx={{ mb: 2 }}>
+                <Button variant="contained" onClick={onStartBrewing} data-testid="start-brewing">
+                    Start Brewing with this Guide
+                </Button>
+            </Stack>
 
             <List sx={{ listStyleType: 'decimal', pl: 3 }}>
                 {guide.steps.map((s, idx) => (
@@ -76,4 +87,3 @@ const GuideDetail: React.FC = () => {
 }
 
 export default GuideDetail
-

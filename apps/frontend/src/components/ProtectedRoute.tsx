@@ -15,9 +15,10 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
     }
 
     if (!isAuthenticated) {
-        // Redirect to login page with the current location as state
-        // so we can redirect back after successful login
-        return <Navigate to="/login" state={{ from: location }} replace />
+        // Redirect to login page with explicit return info
+        const fromPath = location.pathname + location.search + location.hash
+        const fromState = location.state
+        return <Navigate to="/login" state={{ fromPath, fromState }} replace />
     }
 
     return <>{children}</>

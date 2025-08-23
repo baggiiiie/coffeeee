@@ -10,6 +10,14 @@ export type Guide = {
     brewer: string
     description: string
     thumbnail?: string
+    brewPrefill?: {
+        brewMethod: string
+        waterTemperature?: number
+        grindSize?: string
+        coffeeWeight?: number
+        waterWeight?: number
+        brewTime?: number
+    }
     steps: GuideStep[]
 }
 
@@ -20,6 +28,14 @@ export const guides: Guide[] = [
         brewer: 'V60',
         description: 'A clean, bright cup highlighting clarity and nuance.',
         thumbnail: '/images/guides/v60/thumb.svg',
+        brewPrefill: {
+            brewMethod: 'V60',
+            waterTemperature: 94,
+            grindSize: 'medium-fine',
+            coffeeWeight: 15,
+            waterWeight: 250,
+            brewTime: 150,
+        },
         steps: [
             { text: 'Rinse filter and preheat brewer and mug.', image: '/images/placeholder.svg', alt: 'Rinsing paper filter in V60 cone.' },
             { text: 'Add medium-fine ground coffee and level the bed.', image: '/images/placeholder.svg', alt: 'Ground coffee leveled in V60 filter.' },
@@ -35,6 +51,14 @@ export const guides: Guide[] = [
         brewer: 'Chemex',
         description: 'Balanced and clean profile with heavier filter.',
         thumbnail: '/images/guides/chemex/thumb.svg',
+        brewPrefill: {
+            brewMethod: 'Chemex',
+            waterTemperature: 92,
+            grindSize: 'medium',
+            coffeeWeight: 30,
+            waterWeight: 480,
+            brewTime: 240,
+        },
         steps: [
             { text: 'Fold and place Chemex filter, triple-fold side on spout; rinse well.', image: '/images/placeholder.svg', alt: 'Chemex filter placed and rinsed.' },
             { text: 'Add medium grind coffee and create a small well.', image: '/images/placeholder.svg', alt: 'Ground coffee in Chemex with a well.' },

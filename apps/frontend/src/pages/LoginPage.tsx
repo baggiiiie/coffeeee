@@ -22,7 +22,8 @@ const LoginPage: React.FC = () => {
     const location = useLocation()
 
     // Get the page user was trying to access, or default to dashboard
-    const from = (location.state as any)?.from?.pathname || '/dashboard'
+    const fromPath = (location.state as any)?.fromPath || '/dashboard'
+    const fromState = (location.state as any)?.fromState
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -31,7 +32,7 @@ const LoginPage: React.FC = () => {
 
         try {
             await login(email, password)
-            navigate(from, { replace: true })
+            navigate(fromPath, { replace: true, state: fromState })
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Login failed')
         } finally {

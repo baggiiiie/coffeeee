@@ -1,7 +1,7 @@
-import React, { useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 // @ts-expect-error: MenuItem will be used in future iterations
-import { Box, Typography, Paper, TextField, Button, Stack, Snackbar, Alert, MenuItem } from '@mui/material'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { Box, Typography, Paper, TextField, Button, Stack, Snackbar, Alert, MenuItem, Select, InputLabel, FormControl } from '@mui/material'
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import api from '../utils/api'
 import AITastingAssistant from '../components/AITastingAssistant'
 import AIBrewRecommendationDialog from '../components/AIBrewRecommendationDialog'
@@ -9,8 +9,10 @@ import { Alert as MuiAlert } from '@mui/material'
 
 const BrewLogForm: React.FC = () => {
     const navigate = useNavigate()
+    const location = useLocation() as any
     const [params] = useSearchParams()
     const coffeeId = useMemo(() => Number(params.get('coffeeId') || '0'), [params])
+    const [selectedCoffeeId, setSelectedCoffeeId] = useState<number>(coffeeId)
     const [brewMethod, setBrewMethod] = useState('')
     const [coffeeWeight, setCoffeeWeight] = useState<string>('')
     const [waterWeight, setWaterWeight] = useState<string>('')
@@ -24,6 +26,41 @@ const BrewLogForm: React.FC = () => {
     const [aiOpen, setAiOpen] = useState(false)
     const [recoOpen, setRecoOpen] = useState(false)
     const [showRecoCTA, setShowRecoCTA] = useState(false)
+    const [prefillNote, setPrefillNote] = useState<string | null>(null)
+    const [coffees, setCoffees] = useState<Array<{ id: number; name: string }>>([])
+    const headingRef = useRef<HTMLHeadingElement>(null)
+
+    const initialBrewParams = location?.state?.initialBrewParams as any | undefined
+    const fromGuideTitle = location?.state?.fromGuideTitle as string | undefined
+
+    useEffect(() => {
+        // Apply prefill once on mount
+        if (initialBrewParams) {
+            if (initialBrewParams.brewMethod) setBrewMethod(initialBrewParams.brewMethod)
+            if (initialBrewParams.coffeeWeight != null) setCoffeeWeight(String(initialBrewParams.coffeeWeight))
+            if (initialBrewParams.waterWeight != null) setWaterWeight(String(initialBrewParams.waterWeight))
+            if (initialBrewParams.grindSize) setGrindSize(String(initialBrewParams.grindSize))
+            if (initialBrewParams.waterTemperature != null) setWaterTemp(String(initialBrewParams.waterTemperature))
+            if (initialBrewParams.brewTime != null) setBrewTime(String(initialBrewParams.brewTime))
+            setPrefillNote(fromGuideTitle ? `Prefilled from ${fromGuideTitle} — you can edit any field.` : 'Prefilled — you can edit any field.')
+            setTimeout(() => headingRef.current?.focus(), 0)
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [])
+
+    useEffect(() => {
+        // Load user coffees if no coffeeId present
+        if (!selectedCoffeeId) {
+            (async () => {
+                try {
+                    const res = await api.get('/api/v1/coffees')
+                    setCoffees(res.data?.coffees ?? [])
+                } catch {
+                    // ignore; selection remains empty
+                }
+            })()
+        }
+    }, [selectedCoffeeId])
 
     const ratio = useMemo(() => {
         const cw = parseFloat(coffeeWeight)
@@ -46,14 +83,14 @@ const BrewLogForm: React.FC = () => {
         return true
     }
 
-    const canSubmit = coffeeId > 0 && brewMethod.trim() !== '' && boundsValid()
+    const canSubmit = selectedCoffeeId > 0 && brewMethod.trim() !== '' && boundsValid()
 
     const onSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
         if (!canSubmit) return
         setSubmitting(true)
         try {
-            const payload: any = { coffeeId, brewMethod: brewMethod.trim() }
+            const payload: any = { coffeeId: selectedCoffeeId, brewMethod: brewMethod.trim() }
             if (coffeeWeight.trim() !== '') payload.coffeeWeight = parseFloat(coffeeWeight)
             if (waterWeight.trim() !== '') payload.waterWeight = parseFloat(waterWeight)
             if (grindSize.trim() !== '') payload.grindSize = grindSize.trim()
@@ -65,7 +102,8 @@ const BrewLogForm: React.FC = () => {
             setToast({ open: true, message: 'Brew log saved', severity: 'success' })
             setShowRecoCTA(true)
         } catch (err: any) {
-            const msg = err?.response?.data?.message || 'Failed to save brew log'
+            const status = err?.response?.status
+            const msg = status === 403 ? 'You can only log brews for your own coffees.' : (err?.response?.data?.message || 'Failed to save brew log')
             setToast({ open: true, message: msg, severity: 'error' })
         } finally {
             setSubmitting(false)
@@ -75,7 +113,7 @@ const BrewLogForm: React.FC = () => {
     return (
         <>
         <Box sx={{ py: 4 }}>
-            <Typography variant="h4" gutterBottom>
+            <Typography variant="h4" gutterBottom tabIndex={-1} ref={headingRef}>
                 Log New Brew
             </Typography>
             <Paper sx={{ p: 3 }}>
@@ -86,9 +124,45 @@ const BrewLogForm: React.FC = () => {
                         <Button size="small" onClick={() => setShowRecoCTA(false)} sx={{ ml: 1 }}>Dismiss</Button>
                     </MuiAlert>
                 )}
+                {prefillNote && (
+                    <MuiAlert severity="info" sx={{ mb: 2 }} data-testid="prefill-note"
+                        action={<Button variant="outlined" size="small" onClick={() => {
+                            if (initialBrewParams) {
+                                setBrewMethod(initialBrewParams.brewMethod || '')
+                                setCoffeeWeight(initialBrewParams.coffeeWeight != null ? String(initialBrewParams.coffeeWeight) : '')
+                                setWaterWeight(initialBrewParams.waterWeight != null ? String(initialBrewParams.waterWeight) : '')
+                                setGrindSize(initialBrewParams.grindSize || '')
+                                setWaterTemp(initialBrewParams.waterTemperature != null ? String(initialBrewParams.waterTemperature) : '')
+                                setBrewTime(initialBrewParams.brewTime != null ? String(initialBrewParams.brewTime) : '')
+                            }
+                        }}>Reset to defaults</Button>}>
+                        {prefillNote}
+                    </MuiAlert>
+                )}
                 <Box component="form" onSubmit={onSubmit} noValidate>
                     <Stack spacing={2}>
-                        <TextField label="Coffee ID" value={coffeeId} disabled fullWidth data-testid="coffee-id" />
+                        {selectedCoffeeId > 0 ? (
+                            <TextField label="Coffee ID" value={selectedCoffeeId} disabled fullWidth data-testid="coffee-id" />
+                        ) : (
+                            <FormControl fullWidth>
+                                <InputLabel id="coffee-select-label">Select Coffee</InputLabel>
+                                <Select
+                                    labelId="coffee-select-label"
+                                    label="Select Coffee"
+                                    value={selectedCoffeeId || ''}
+                                    onChange={(e) => setSelectedCoffeeId(Number(e.target.value))}
+                                    displayEmpty
+                                    inputProps={{ 'data-testid': 'coffee-select' }}
+                                >
+                                    <MenuItem value="" disabled>
+                                        <em>Select a coffee</em>
+                                    </MenuItem>
+                                    {coffees.map((c) => (
+                                        <MenuItem key={c.id} value={c.id}>{c.name}</MenuItem>
+                                    ))}
+                                </Select>
+                            </FormControl>
+                        )}
                         <TextField
                             label="Brew Method"
                             value={brewMethod}

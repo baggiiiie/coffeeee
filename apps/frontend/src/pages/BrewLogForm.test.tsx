@@ -54,6 +54,66 @@ describe('BrewLogForm', () => {
         await waitFor(() => expect(screen.getByTestId('next-reco-cta')).toBeInTheDocument())
         postSpy.mockRestore()
     })
+
+    it('prefills fields from router state and allows reset', async () => {
+        const getSpy = vi.spyOn(api, 'get').mockResolvedValueOnce({ data: { coffees: [] } })
+        render(
+            <MemoryRouter initialEntries={[
+                { pathname: '/brew-logs/new', state: { initialBrewParams: { brewMethod: 'Chemex', waterTemperature: 92, grindSize: 'medium' }, fromGuideTitle: 'Chemex Brewing Guide' } } as any,
+            ]}>
+                <Routes>
+                    <Route path="/brew-logs/new" element={<BrewLogForm />} />
+                </Routes>
+            </MemoryRouter>
+        )
+        expect(await screen.findByTestId('prefill-note')).toBeInTheDocument()
+        expect((screen.getByTestId('brew-method') as HTMLInputElement).value).toMatch(/chemex/i)
+        // Change a field, then reset
+        fireEvent.change(screen.getByTestId('brew-method'), { target: { value: 'V60' } })
+        fireEvent.click(screen.getByRole('button', { name: /reset to defaults/i }))
+        await waitFor(() => expect((screen.getByTestId('brew-method') as HTMLInputElement).value).toMatch(/chemex/i))
+        getSpy.mockRestore()
+    })
+
+    it('requires selecting a coffee if none provided and blocks submit until chosen', async () => {
+        const getSpy = vi.spyOn(api, 'get').mockResolvedValueOnce({ data: { coffees: [ { id: 7, name: 'Ethiopia Yirgacheffe' } ] } })
+        render(
+            <MemoryRouter initialEntries={["/brew-logs/new"]}>
+                <Routes>
+                    <Route path="/brew-logs/new" element={<BrewLogForm />} />
+                </Routes>
+            </MemoryRouter>
+        )
+        fireEvent.change(screen.getByTestId('brew-method'), { target: { value: 'V60' } })
+        const submit = screen.getByTestId('submit-brewlog')
+        expect(submit).toBeDisabled()
+        const trigger = await screen.findByRole('combobox', { name: /select coffee/i })
+        fireEvent.mouseDown(trigger)
+        const opt = await screen.findByRole('option', { name: /ethiopia yirgacheffe/i })
+        fireEvent.click(opt)
+        expect(submit).not.toBeDisabled()
+        getSpy.mockRestore()
+    })
+
+    it('shows a friendly error when backend returns 403 for unauthorized coffee', async () => {
+        const getSpy = vi.spyOn(api, 'get').mockResolvedValueOnce({ data: { coffees: [ { id: 9, name: 'Kenya AA' } ] } })
+        const postSpy = vi.spyOn(api, 'post').mockRejectedValueOnce({ response: { status: 403 } })
+        render(
+            <MemoryRouter initialEntries={["/brew-logs/new"]}>
+                <Routes>
+                    <Route path="/brew-logs/new" element={<BrewLogForm />} />
+                </Routes>
+            </MemoryRouter>
+        )
+        fireEvent.change(screen.getByTestId('brew-method'), { target: { value: 'Chemex' } })
+        const trigger = await screen.findByRole('combobox', { name: /select coffee/i })
+        fireEvent.mouseDown(trigger)
+        const opt = await screen.findByRole('option', { name: /kenya aa/i })
+        fireEvent.click(opt)
+        fireEvent.click(screen.getByTestId('submit-brewlog'))
+        expect(await screen.findByText(/only log brews for your own coffees/i)).toBeInTheDocument()
+        getSpy.mockRestore(); postSpy.mockRestore()
+    })
     it('opens recommendation dialog, submits goal, and renders result', async () => {
         // First call is saving brewlog; second call is AI recommendation
         const postSpy = vi.spyOn(api, 'post')
