@@ -12,6 +12,8 @@ import CoffeeNewPage from './pages/CoffeeNewPage'
 import BrewLogForm from './pages/BrewLogForm'
 import UserProfilePage from './pages/UserProfilePage'
 import { AuthProvider } from './context/AuthContext'
+import BrewingGuidesPage from './pages/BrewingGuidesPage'
+import GuideDetail from './pages/GuideDetail'
 
 function App() {
     return (
@@ -59,6 +61,16 @@ function App() {
                         <Route path="/profile" element={
                             <ProtectedRoute>
                                 <UserProfilePage />
+                            </ProtectedRoute>
+                        } />
+                        <Route path="/guides" element={
+                            <ProtectedRoute>
+                                <BrewingGuidesPage />
+                            </ProtectedRoute>
+                        } />
+                        <Route path="/guides/:slug" element={
+                            <ProtectedRoute>
+                                <GuideDetail />
                             </ProtectedRoute>
                         } />
                     </Routes>
