@@ -3,6 +3,7 @@ import React, { useMemo, useState } from 'react'
 import { Box, Typography, Paper, TextField, Button, Stack, Snackbar, Alert, MenuItem } from '@mui/material'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import api from '../utils/api'
+import AITastingAssistant from '../components/AITastingAssistant'
 
 const BrewLogForm: React.FC = () => {
     const navigate = useNavigate()
@@ -18,6 +19,7 @@ const BrewLogForm: React.FC = () => {
     const [rating, setRating] = useState<string>('')
     const [submitting, setSubmitting] = useState(false)
     const [toast, setToast] = useState<{open: boolean; message: string; severity: 'success' | 'error'}>({ open: false, message: '', severity: 'success' })
+    const [aiOpen, setAiOpen] = useState(false)
 
     const ratio = useMemo(() => {
         const cw = parseFloat(coffeeWeight)
@@ -67,6 +69,7 @@ const BrewLogForm: React.FC = () => {
     }
 
     return (
+        <>
         <Box sx={{ py: 4 }}>
             <Typography variant="h4" gutterBottom>
                 Log New Brew
@@ -94,6 +97,9 @@ const BrewLogForm: React.FC = () => {
                             <TextField label="Brew Time (s)" value={brewTime} onChange={(e) => setBrewTime(e.target.value)} inputProps={{ inputMode: 'numeric', 'data-testid': 'brew-time' }} fullWidth />
                         </Stack>
                         <TextField label="Tasting Notes" value={tastingNotes} onChange={(e) => setTastingNotes(e.target.value)} inputProps={{ 'data-testid': 'tasting-notes' }} fullWidth multiline minRows={3} />
+                        <Stack direction="row" spacing={2}>
+                            <Button variant="outlined" onClick={() => setAiOpen(true)} data-testid="open-ai-guide">AI Tasting Guide</Button>
+                        </Stack>
                         <TextField label="Rating (1–5)" value={rating} onChange={(e) => setRating(e.target.value)} inputProps={{ inputMode: 'numeric', 'data-testid': 'rating' }} fullWidth />
                         <Stack direction="row" spacing={2}>
                             <Button type="submit" variant="contained" disabled={!canSubmit || submitting} data-testid="submit-brewlog">{submitting ? 'Saving…' : 'Save Brew Log'}</Button>
@@ -106,6 +112,16 @@ const BrewLogForm: React.FC = () => {
                 <Alert severity={toast.severity} onClose={() => setToast({ ...toast, open: false })}>{toast.message}</Alert>
             </Snackbar>
         </Box>
+        <AITastingAssistant
+            open={aiOpen}
+            brewMethod={brewMethod}
+            onClose={() => setAiOpen(false)}
+            onComplete={(notes) => {
+                setTastingNotes(notes)
+                setAiOpen(false)
+            }}
+        />
+        </>
     )
 }
 
