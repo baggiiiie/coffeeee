@@ -1,5 +1,6 @@
 # The Coffee Companion
 
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/baggiiiie/coffeeee)
 A fullstack web application for coffee enthusiasts to track their brewing journey, log coffee experiences, and get AI-powered brewing recommendations.
 
 ## 🚀 Features
