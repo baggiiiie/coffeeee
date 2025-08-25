@@ -3,7 +3,7 @@
 ## Monorepo Organization
 
 ```
-coffee-companion/
+coffeeee/
 ├── package.json (workspace root)
 ├── go.mod (Go module root)
 ├── README.md
@@ -88,7 +88,7 @@ coffee-companion/
 
 ```json
 {
-  "name": "coffee-companion",
+  "name": "coffeeee",
   "private": true,
   "workspaces": [
     "apps/*",

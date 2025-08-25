@@ -1,5 +1,5 @@
 {
-    "name": "@coffee-companion/shared-types",
+    "name": "@coffeeee/shared-types",
     "version": "1.0.0",
     "description": "Shared TypeScript types for Coffee Companion",
     "main": "dist/index.js",

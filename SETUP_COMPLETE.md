@@ -19,7 +19,7 @@ Your Coffee Companion project is now **fully set up and running**! Here's what w
 
 ### 📁 **Project Structure**
 ```
-coffee-companion/
+coffeeee/
 ├── apps/
 │   ├── frontend/          # React + TypeScript + Material-UI
 │   └── backend/           # Go + SQLite + REST API

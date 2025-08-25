@@ -694,7 +694,7 @@ type Config struct {
 ### Monorepo Organization
 
 ```
-coffee-companion/
+coffeeee/
 ├── package.json (workspace root)
 ├── go.mod (Go module root)
 ├── README.md
@@ -778,7 +778,7 @@ coffee-companion/
 **Root package.json:**
 ```json
 {
-  "name": "coffee-companion",
+  "name": "coffeeee",
   "private": true,
   "workspaces": [
     "apps/*",
@@ -827,7 +827,7 @@ coffee-companion/
 ```bash
 # Clone repository
 git clone <repository-url>
-cd coffee-companion
+cd coffeeee
 
 # Install dependencies
 npm install

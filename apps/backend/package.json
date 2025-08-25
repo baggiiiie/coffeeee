@@ -1,14 +1,14 @@
 {
-    "name": "@coffee-companion/backend",
+    "name": "@coffeeee/backend",
     "version": "1.0.0",
     "description": "Go backend for Coffee Companion",
     "scripts": {
         "dev": "go run cmd/server/main.go",
-        "build": "go build -o coffee-companion cmd/server/main.go",
+        "build": "go build -o coffeeee cmd/server/main.go",
         "test": "go test ./...",
         "test:coverage": "go test -coverprofile=coverage.out ./...",
         "lint": "golangci-lint run",
-        "clean": "rm -f coffee-companion coverage.out",
+        "clean": "rm -f coffeeee coverage.out",
         "db:setup": "go run cmd/setup/main.go",
         "db:migrate": "go run cmd/migrate/main.go",
         "db:seed": "go run cmd/seed/main.go"

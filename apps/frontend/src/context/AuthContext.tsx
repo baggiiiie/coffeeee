@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { User, CreateUserRequest, LoginRequest, LoginResponse, UpdateUserRequest } from '@coffee-companion/shared-types'
+import { User, CreateUserRequest, LoginRequest, LoginResponse, UpdateUserRequest } from '@coffeeee/shared-types'
 import api, { resetLogoutGuard } from '../utils/api'
 import { Snackbar, Alert } from '@mui/material'
 

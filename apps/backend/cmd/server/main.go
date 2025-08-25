@@ -10,9 +10,9 @@ import (
 	"syscall"
 	"time"
 
-	"coffee-companion/backend/internal/api/routes"
-	"coffee-companion/backend/internal/config"
-	"coffee-companion/backend/internal/database"
+	"coffeeee/backend/internal/api/routes"
+	"coffeeee/backend/internal/config"
+	"coffeeee/backend/internal/database"
 )
 
 func main() {

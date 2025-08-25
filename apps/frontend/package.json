@@ -1,5 +1,5 @@
 {
-    "name": "@coffee-companion/frontend",
+    "name": "@coffeeee/frontend",
     "version": "1.0.0",
     "description": "React frontend for Coffee Companion",
     "type": "module",
@@ -14,7 +14,7 @@
         "lint:fix": "eslint . --fix"
     },
     "dependencies": {
-        "@coffee-companion/shared-types": "file:../../packages/shared-types",
+        "@coffeeee/shared-types": "file:../../packages/shared-types",
         "@emotion/react": "^11.11.1",
         "@emotion/styled": "^11.11.0",
         "@mui/icons-material": "^5.15.3",

@@ -10,9 +10,9 @@ import (
 	"runtime"
 	"testing"
 
-	"coffee-companion/backend/internal/api/routes"
-	"coffee-companion/backend/internal/config"
-	"coffee-companion/backend/internal/migrate"
+	"coffeeee/backend/internal/api/routes"
+	"coffeeee/backend/internal/config"
+	"coffeeee/backend/internal/migrate"
 
 	_ "github.com/mattn/go-sqlite3"
 )

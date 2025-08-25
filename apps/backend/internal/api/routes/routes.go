@@ -1,9 +1,9 @@
 package routes
 
 import (
-	"coffee-companion/backend/internal/api/handlers"
-	"coffee-companion/backend/internal/api/middleware"
-	"coffee-companion/backend/internal/config"
+	"coffeeee/backend/internal/api/handlers"
+	"coffeeee/backend/internal/api/middleware"
+	"coffeeee/backend/internal/config"
 	"database/sql"
 	"net/http"
 

@@ -9,8 +9,8 @@ import (
     "testing"
     "time"
 
-    "coffee-companion/backend/internal/api/middleware"
-    "coffee-companion/backend/internal/config"
+    "coffeeee/backend/internal/api/middleware"
+    "coffeeee/backend/internal/config"
 
     _ "github.com/mattn/go-sqlite3"
 )

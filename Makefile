@@ -54,7 +54,7 @@ clean:
 	@echo "Cleaning build artifacts..."
 	rm -rf apps/frontend/dist
 	rm -rf apps/frontend/node_modules/.vite
-	rm -f apps/backend/coffee-companion
+	rm -f apps/backend/coffeeee
 	rm -f apps/backend/data/coffee.db
 
 # Setup database
@@ -75,4 +75,4 @@ db-migrate-down:
 build:
 	@echo "Building for production..."
 	cd apps/frontend && npm run build
-	cd apps/backend && go build -o coffee-companion cmd/server/main.go
+	cd apps/backend && go build -o coffeeee cmd/server/main.go

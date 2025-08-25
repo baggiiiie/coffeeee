@@ -1,4 +1,4 @@
-module coffee-companion/backend
+module coffeeee/backend
 
 go 1.22
 

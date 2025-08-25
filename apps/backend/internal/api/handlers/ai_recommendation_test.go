@@ -7,7 +7,7 @@ import (
     "net/http/httptest"
     "testing"
 
-    "coffee-companion/backend/internal/config"
+    "coffeeee/backend/internal/config"
 )
 
 func TestAIRecommendation_FirstQuestion(t *testing.T) {

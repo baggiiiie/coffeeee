@@ -1,4 +1,4 @@
-module coffee-companion
+module coffeeee
 
 go 1.22
 

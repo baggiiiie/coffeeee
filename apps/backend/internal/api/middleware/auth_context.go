@@ -1,7 +1,7 @@
 package middleware
 
 import (
-	"coffee-companion/backend/internal/utils"
+	"coffeeee/backend/internal/utils"
 	"context"
 )
 

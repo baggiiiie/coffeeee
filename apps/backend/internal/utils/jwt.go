@@ -25,7 +25,7 @@ func GenerateToken(userID int64, email, username, secret string, expiry time.Dur
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(expiry)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 			NotBefore: jwt.NewNumericDate(time.Now()),
-			Issuer:    "coffee-companion",
+			Issuer:    "coffeeee",
 			Subject:   fmt.Sprintf("%d", userID),
 		},
 	}

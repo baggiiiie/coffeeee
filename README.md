@@ -30,7 +30,7 @@ A fullstack web application for coffee enthusiasts to track their brewing journe
 ### 1. Clone the repository
 ```bash
 git clone <repository-url>
-cd coffee-companion
+cd coffeeee
 ```
 
 ### 2. Install dependencies
@@ -68,7 +68,7 @@ This will start:
 ## 📁 Project Structure
 
 ```
-coffee-companion/
+coffeeee/
 ├── apps/
 │   ├── frontend/          # React application
 │   └── backend/           # Go application
@@ -107,8 +107,8 @@ npm run build
 
 ### Docker Deployment
 ```bash
-docker build -t coffee-companion .
-docker run -p 8080:8080 coffee-companion
+docker build -t coffeeee .
+docker run -p 8080:8080 coffeeee
 ```
 
 ## 📚 Documentation

@@ -9,7 +9,7 @@ import (
 
     "github.com/gorilla/mux"
 
-    "coffee-companion/backend/internal/utils"
+    "coffeeee/backend/internal/utils"
 )
 
 const testSecret = "test-secret-key"

@@ -6,7 +6,7 @@ import (
     "path/filepath"
     "testing"
 
-    "coffee-companion/backend/internal/database"
+    "coffeeee/backend/internal/database"
 
     _ "github.com/mattn/go-sqlite3"
 )

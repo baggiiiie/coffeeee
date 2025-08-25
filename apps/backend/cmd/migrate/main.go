@@ -7,9 +7,9 @@ import (
     "os"
     "strconv"
 
-    "coffee-companion/backend/internal/config"
-    "coffee-companion/backend/internal/database"
-    mig "coffee-companion/backend/internal/migrate"
+    "coffeeee/backend/internal/config"
+    "coffeeee/backend/internal/database"
+    mig "coffeeee/backend/internal/migrate"
 )
 
 func usage() {

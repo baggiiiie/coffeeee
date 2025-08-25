@@ -1,8 +1,8 @@
 package handlers
 
 import (
-	"coffee-companion/backend/internal/config"
-	"coffee-companion/backend/internal/utils"
+	"coffeeee/backend/internal/config"
+	"coffeeee/backend/internal/utils"
 	"database/sql"
 	"encoding/json"
 	"errors"

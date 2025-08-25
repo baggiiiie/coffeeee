@@ -2,7 +2,7 @@ package middleware
 
 import (
 	"bytes"
-	"coffee-companion/backend/internal/utils"
+	"coffeeee/backend/internal/utils"
 	"encoding/json"
 	"io"
 	"log"

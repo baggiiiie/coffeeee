@@ -5,7 +5,7 @@ import (
     "encoding/json"
     "net/http"
 
-    "coffee-companion/backend/internal/config"
+    "coffeeee/backend/internal/config"
 )
 
 type AIHandler struct {
