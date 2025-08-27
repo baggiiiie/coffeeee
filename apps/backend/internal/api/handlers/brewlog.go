@@ -84,6 +84,10 @@ func (h *BrewLogHandler) List(w http.ResponseWriter, r *http.Request) {
     type rowT struct {
         id         int64
         createdAt  string
+        method     string
+        coffeeW    sql.NullFloat64
+        waterW     sql.NullFloat64
+        rating     sql.NullInt64
         notesValid bool
         notes      string
     }
@@ -91,6 +95,10 @@ func (h *BrewLogHandler) List(w http.ResponseWriter, r *http.Request) {
     const sqlQuery = `
         SELECT id,
                strftime('%Y-%m-%dT%H:%M:%fZ', created_at) AS created_at,
+               brew_method,
+               coffee_weight,
+               water_weight,
+               rating,
                tasting_notes IS NOT NULL AS notes_valid,
                IFNULL(tasting_notes, '') AS notes
         FROM brew_logs
@@ -107,19 +115,35 @@ func (h *BrewLogHandler) List(w http.ResponseWriter, r *http.Request) {
     defer rows.Close()
 
     type item struct {
-        ID           int64   `json:"id"`
-        CreatedAt    string  `json:"createdAt"`
-        TastingNotes *string `json:"tastingNotes,omitempty"`
+        ID           int64    `json:"id"`
+        CreatedAt    string   `json:"createdAt"`
+        BrewMethod   string   `json:"brewMethod"`
+        CoffeeWeight *float64 `json:"coffeeWeight,omitempty"`
+        WaterWeight  *float64 `json:"waterWeight,omitempty"`
+        Rating       *int64   `json:"rating,omitempty"`
+        TastingNotes *string  `json:"tastingNotes,omitempty"`
     }
     var out []item
     for rows.Next() {
         var r rowT
-        if err := rows.Scan(&r.id, &r.createdAt, &r.notesValid, &r.notes); err != nil {
+        if err := rows.Scan(&r.id, &r.createdAt, &r.method, &r.coffeeW, &r.waterW, &r.rating, &r.notesValid, &r.notes); err != nil {
             w.WriteHeader(http.StatusInternalServerError)
             _ = json.NewEncoder(w).Encode(map[string]string{"code": "DATABASE_ERROR", "message": "failed to read brew logs"})
             return
         }
-        it := item{ID: r.id, CreatedAt: r.createdAt}
+        it := item{ID: r.id, CreatedAt: r.createdAt, BrewMethod: r.method}
+        if r.coffeeW.Valid {
+            v := r.coffeeW.Float64
+            it.CoffeeWeight = &v
+        }
+        if r.waterW.Valid {
+            v := r.waterW.Float64
+            it.WaterWeight = &v
+        }
+        if r.rating.Valid {
+            v := r.rating.Int64
+            it.Rating = &v
+        }
         if r.notesValid {
             s := r.notes
             it.TastingNotes = &s

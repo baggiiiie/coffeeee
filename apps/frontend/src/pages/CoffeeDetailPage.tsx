@@ -6,6 +6,10 @@ import api from '../utils/api'
 type BrewLog = {
     id: number
     createdAt: string
+    brewMethod: string
+    coffeeWeight?: number
+    waterWeight?: number
+    rating?: number
     tastingNotes?: string
 }
 
@@ -73,6 +77,18 @@ const BrewLogList: React.FC<{ coffeeId: number }> = ({ coffeeId }) => {
         try { return new Date(iso).toLocaleDateString() } catch { return iso }
     }
 
+    const params = (cw?: number, ww?: number, rating?: number) => {
+        const parts: string[] = []
+        if (typeof cw === 'number' && typeof ww === 'number' && cw > 0 && ww > 0) {
+            const ratio = (ww / cw)
+            parts.push(`${cw}g → ${ww}g (1:${ratio.toFixed(1)})`)
+        }
+        if (typeof rating === 'number') {
+            parts.push(`★${rating}`)
+        }
+        return parts.join(' • ')
+    }
+
     const summarize = (notes?: string) => {
         if (!notes) return ''
         const firstLine = notes.split('\n')[0]
@@ -89,8 +105,8 @@ const BrewLogList: React.FC<{ coffeeId: number }> = ({ coffeeId }) => {
                         onClick={() => navigate(`/brew-logs/${it.id}`)}
                     >
                         <ListItemText
-                            primary={formatDate(it.createdAt)}
-                            secondary={summarize(it.tastingNotes)}
+                            primary={`${formatDate(it.createdAt)} — ${it.brewMethod}`}
+                            secondary={[params(it.coffeeWeight, it.waterWeight, it.rating), summarize(it.tastingNotes)].filter(Boolean).join(' • ')}
                         />
                     </ListItemButton>
                 ))}

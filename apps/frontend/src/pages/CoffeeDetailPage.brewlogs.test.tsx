@@ -10,7 +10,7 @@ vi.mock('../utils/api', async () => {
 
 describe('CoffeeDetailPage BrewLogList', () => {
     it('renders list with items from API and navigates on click', async () => {
-        const items = { brewLogs: [ { id: 11, createdAt: '2024-08-02T10:00:00Z', tastingNotes: 'Nice and sweet' }, { id: 10, createdAt: '2024-08-01T10:00:00Z', tastingNotes: 'Fruity\nSecond line' } ] }
+        const items = { brewLogs: [ { id: 11, createdAt: '2024-08-02T10:00:00Z', brewMethod: 'V60', tastingNotes: 'Nice and sweet' }, { id: 10, createdAt: '2024-08-01T10:00:00Z', brewMethod: 'Espresso', tastingNotes: 'Fruity\nSecond line' } ] }
         const getSpy = vi.spyOn(api, 'get').mockResolvedValueOnce({ data: items })
 
         render(
@@ -27,6 +27,9 @@ describe('CoffeeDetailPage BrewLogList', () => {
         expect(list).toBeInTheDocument()
         const itemsEls = await screen.findAllByTestId('brewlog-item')
         expect(itemsEls.length).toBe(2)
+        // Ensure brew methods are rendered alongside dates
+        expect(screen.getByText(/V60/)).toBeInTheDocument()
+        expect(screen.getByText(/Espresso/)).toBeInTheDocument()
         fireEvent.click(itemsEls[0])
         expect(await screen.findByTestId('detail')).toBeInTheDocument()
         getSpy.mockRestore()
@@ -60,4 +63,3 @@ describe('CoffeeDetailPage BrewLogList', () => {
         getSpy.mockRestore()
     })
 })
-

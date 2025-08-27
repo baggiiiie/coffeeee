@@ -4,7 +4,7 @@
 
 ---
 
-### Story 2.1: Create Coffee "Journey" Log
+## Story 2.1: Create Coffee "Journey" Log
 *   **As a** logged-in user,
 *   **I want** to add a new coffee to my personal collection by uploading a photo of the bag and adding details,
 *   **so that** I can keep a record of all the coffees I have tried.
@@ -16,7 +16,7 @@
 
 ---
 
-### Story 2.2: View Coffee Gallery
+## Story 2.2: View Coffee Gallery
 *   **As a** logged-in user,
 *   **I want** to see all the coffees I have logged in a visually appealing gallery,
 *   **so that** I can easily browse my coffee history.
@@ -27,7 +27,7 @@
 
 ---
 
-### Story 2.3: Create Brew Log
+## Story 2.3: Create Brew Log
 *   **As a** logged-in user,
 *   **I want** to start a new brew log for a specific coffee from my collection,
 *   **so that** I can record the details of my brew.
@@ -39,7 +39,7 @@
 
 ---
 
-### Story 2.4 (Revised): AI-Guided Tasting Experience
+## Story 2.4 (Revised): AI-Guided Tasting Experience
 *   **As a** logged-in user,
 *   **I want** the app to ask me guiding questions about what I'm tasting,
 *   **so that** I can learn to identify and describe the flavors in my coffee myself.
@@ -53,7 +53,7 @@
 
 ---
 
-### Story 2.5: View Brew History
+## Story 2.5: View Brew History
 *   **As a** logged-in user,
 *   **I want** to see a history of all the brews I have logged for a specific coffee,
 *   **so that** I can track my progress and see how my brew variables have changed over time.
