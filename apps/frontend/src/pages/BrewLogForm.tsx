@@ -13,6 +13,7 @@ const BrewLogForm: React.FC = () => {
     const [params] = useSearchParams()
     const coffeeId = useMemo(() => Number(params.get('coffeeId') || '0'), [params])
     const [selectedCoffeeId, setSelectedCoffeeId] = useState<number>(coffeeId)
+    const [selectedCoffeeName, setSelectedCoffeeName] = useState<string>('')
     const [brewMethod, setBrewMethod] = useState('')
     const [coffeeWeight, setCoffeeWeight] = useState<string>('')
     const [waterWeight, setWaterWeight] = useState<string>('')
@@ -59,6 +60,23 @@ const BrewLogForm: React.FC = () => {
                     // ignore; selection remains empty
                 }
             })()
+        }
+    }, [selectedCoffeeId])
+
+    // When a specific coffeeId is provided, fetch its name for display
+    useEffect(() => {
+        if (selectedCoffeeId > 0) {
+            (async () => {
+                try {
+                    const res = await api.get(`/api/v1/coffees/${selectedCoffeeId}`)
+                    const name = res.data?.coffee?.name
+                    setSelectedCoffeeName(name && String(name).trim() ? String(name) : 'unknown coffee')
+                } catch {
+                    setSelectedCoffeeName('unknown coffee')
+                }
+            })()
+        } else {
+            setSelectedCoffeeName('')
         }
     }, [selectedCoffeeId])
 
@@ -142,7 +160,7 @@ const BrewLogForm: React.FC = () => {
                 <Box component="form" onSubmit={onSubmit} noValidate>
                     <Stack spacing={2}>
                         {selectedCoffeeId > 0 ? (
-                            <TextField label="Coffee ID" value={selectedCoffeeId} disabled fullWidth data-testid="coffee-id" />
+                            <TextField label="Coffee" value={selectedCoffeeName || 'unknown coffee'} disabled fullWidth data-testid="coffee-id" />
                         ) : (
                             <FormControl fullWidth>
                                 <InputLabel id="coffee-select-label">Select Coffee</InputLabel>
@@ -177,7 +195,7 @@ const BrewLogForm: React.FC = () => {
                             <TextField label="Ratio" value={ratio} disabled fullWidth />
                         </Stack>
                         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-                            <TextField label="Grind Size" value={grindSize} onChange={(e) => setGrindSize(e.target.value)} inputProps={{ 'data-testid': 'grind-size' }} fullWidth />
+                            <TextField label="Grind Size (Clicks)" value={grindSize} onChange={(e) => setGrindSize(e.target.value)} inputProps={{ 'data-testid': 'grind-size' }} fullWidth />
                             <TextField label="Water Temp (°C)" value={waterTemp} onChange={(e) => setWaterTemp(e.target.value)} inputProps={{ inputMode: 'decimal', 'data-testid': 'water-temp' }} fullWidth />
                             <TextField label="Brew Time (s)" value={brewTime} onChange={(e) => setBrewTime(e.target.value)} inputProps={{ inputMode: 'numeric', 'data-testid': 'brew-time' }} fullWidth />
                         </Stack>

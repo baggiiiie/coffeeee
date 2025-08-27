@@ -28,6 +28,7 @@ const BrewLogDetailPage: React.FC = () => {
   const [error, setError] = useState<{ status: number; message: string } | null>(null)
   const [editMode, setEditMode] = useState(false)
   const [recoOpen, setRecoOpen] = useState(false)
+  const [coffeeName, setCoffeeName] = useState<string>('')
 
   // Edit state
   const [brewMethod, setBrewMethod] = useState('')
@@ -57,6 +58,21 @@ const BrewLogDetailPage: React.FC = () => {
   }
 
   useEffect(() => { load() }, [logId])
+
+  // Load coffee name for display
+  useEffect(() => {
+    const fetchCoffeeName = async (cid: number) => {
+      if (!cid) return setCoffeeName('')
+      try {
+        const res = await api.get(`/api/v1/coffees/${cid}`)
+        const name = res.data?.coffee?.name
+        setCoffeeName(name && String(name).trim() ? String(name) : 'unknown coffee')
+      } catch {
+        setCoffeeName('unknown coffee')
+      }
+    }
+    if (data?.coffeeId) fetchCoffeeName(data.coffeeId)
+  }, [data?.coffeeId])
 
   const enterEditMode = () => {
     if (!data) return
@@ -150,7 +166,7 @@ const BrewLogDetailPage: React.FC = () => {
       <Paper sx={{ p: 3 }}>
         <Stack spacing={2}>
           <Typography variant="subtitle1">Created: {formatDate(data.createdAt)}</Typography>
-          <TextField label="Coffee ID" value={data.coffeeId} disabled fullWidth data-testid="coffee-id" />
+          <TextField label="Coffee" value={coffeeName || 'unknown coffee'} disabled fullWidth data-testid="coffee-id" />
           <TextField
             label="Brew Method"
             value={editMode ? brewMethod : data.brewMethod}
@@ -160,13 +176,16 @@ const BrewLogDetailPage: React.FC = () => {
             fullWidth
             disabled={!editMode}
           />
+          {!editMode && (
+            <Typography variant="body2">{data.brewMethod}</Typography>
+          )}
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
             <TextField label="Coffee (g)" value={editMode ? coffeeWeight : (data.coffeeWeight ?? '')} onChange={(e) => setCoffeeWeight(e.target.value)} inputProps={{ inputMode: 'decimal', 'data-testid': 'coffee-weight' }} fullWidth disabled={!editMode} />
             <TextField label="Water (g)" value={editMode ? waterWeight : (data.waterWeight ?? '')} onChange={(e) => setWaterWeight(e.target.value)} inputProps={{ inputMode: 'decimal', 'data-testid': 'water-weight' }} fullWidth disabled={!editMode} />
             <TextField label="Ratio" value={editMode ? ratio : (data.coffeeWeight && data.waterWeight ? (data.waterWeight / data.coffeeWeight).toFixed(1) : '')} disabled fullWidth />
           </Stack>
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-            <TextField label="Grind Size" value={editMode ? grindSize : (data.grindSize ?? '')} onChange={(e) => setGrindSize(e.target.value)} inputProps={{ 'data-testid': 'grind-size' }} fullWidth disabled={!editMode} />
+            <TextField label="Grind Size (Clicks)" value={editMode ? grindSize : (data.grindSize ?? '')} onChange={(e) => setGrindSize(e.target.value)} inputProps={{ 'data-testid': 'grind-size' }} fullWidth disabled={!editMode} />
             <TextField label="Water Temp (°C)" value={editMode ? waterTemp : (data.waterTemperature ?? '')} onChange={(e) => setWaterTemp(e.target.value)} inputProps={{ inputMode: 'decimal', 'data-testid': 'water-temp' }} fullWidth disabled={!editMode} />
             <TextField label="Brew Time (s)" value={editMode ? brewTime : (data.brewTime ?? '')} onChange={(e) => setBrewTime(e.target.value)} inputProps={{ inputMode: 'numeric', 'data-testid': 'brew-time' }} fullWidth disabled={!editMode} />
           </Stack>
@@ -200,7 +219,7 @@ const BrewLogDetailPage: React.FC = () => {
               }}
               data-testid="create-from-this"
             >
-              Create New From This
+              New Brew From This
             </Button>
           </Stack>
         </Stack>
@@ -227,4 +246,3 @@ const BrewLogDetailPage: React.FC = () => {
 }
 
 export default BrewLogDetailPage
-
