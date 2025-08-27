@@ -51,32 +51,40 @@ const BrewLogForm: React.FC = () => {
 
     useEffect(() => {
         // Load user coffees if no coffeeId present
+        let active = true
         if (!selectedCoffeeId) {
             (async () => {
                 try {
                     const res = await api.get('/api/v1/coffees')
-                    setCoffees(res.data?.coffees ?? [])
+                    if (active) setCoffees(res.data?.coffees ?? [])
                 } catch {
                     // ignore; selection remains empty
                 }
             })()
         }
+        return () => {
+            active = false
+        }
     }, [selectedCoffeeId])
 
     // When a specific coffeeId is provided, fetch its name for display
     useEffect(() => {
+        let active = true
         if (selectedCoffeeId > 0) {
             (async () => {
                 try {
                     const res = await api.get(`/api/v1/coffees/${selectedCoffeeId}`)
                     const name = res.data?.coffee?.name
-                    setSelectedCoffeeName(name && String(name).trim() ? String(name) : 'unknown coffee')
+                    if (active) setSelectedCoffeeName(name && String(name).trim() ? String(name) : 'unknown coffee')
                 } catch {
-                    setSelectedCoffeeName('unknown coffee')
+                    if (active) setSelectedCoffeeName('unknown coffee')
                 }
             })()
         } else {
             setSelectedCoffeeName('')
+        }
+        return () => {
+            active = false
         }
     }, [selectedCoffeeId])
 
