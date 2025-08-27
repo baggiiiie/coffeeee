@@ -4,6 +4,8 @@ import (
 	"coffeeee/backend/internal/api/handlers"
 	"coffeeee/backend/internal/api/middleware"
 	"coffeeee/backend/internal/config"
+	"coffeeee/backend/internal/database"
+	"coffeeee/backend/internal/services"
 	"database/sql"
 	"net/http"
 
@@ -14,10 +16,14 @@ import (
 func Setup(db *sql.DB, cfg *config.Config) http.Handler {
 	router := mux.NewRouter()
 
+	// Initialize database queries and services
+	queries := database.NewQueries(db)
+	coffeeService := services.NewCoffeeService(queries)
+
 	// Initialize handlers
 	authHandler := handlers.NewAuthHandler(db, cfg)
 	userHandler := handlers.NewUserHandler(db, cfg)
-	coffeeHandler := handlers.NewCoffeeHandler(db, cfg)
+	coffeeHandler := handlers.NewCoffeeHandler(coffeeService, cfg)
 	brewLogHandler := handlers.NewBrewLogHandler(db, cfg)
 	aiHandler := handlers.NewAIHandler(db, cfg)
 

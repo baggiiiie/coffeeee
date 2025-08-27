@@ -13,12 +13,15 @@ help:
 	@echo "db-setup    - Setup database (legacy one-off)"
 	@echo "db-migrate-up   - Apply all pending DB migrations"
 	@echo "db-migrate-down - Revert the latest DB migration"
+	@echo "sqlc-generate   - Generate sqlc code from SQL queries"
 
 # Install dependencies
 install:
 	@echo "Installing dependencies..."
 	npm install
 	cd apps/backend && go mod tidy
+	cd apps/backend && go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest
+	cd apps/backend && sqlc generate
 
 # Start both servers
 dev:
@@ -70,6 +73,11 @@ db-migrate-up:
 db-migrate-down:
 	@echo "Reverting latest database migration..."
 	cd apps/backend && go run cmd/migrate/main.go down
+
+# Generate sqlc code
+sqlc-generate:
+	@echo "Generating sqlc code..."
+	cd apps/backend && sqlc generate
 
 # Build for production
 build:

@@ -1,26 +1,30 @@
 package handlers
 
 import (
-    "bytes"
-    "database/sql"
-    "encoding/json"
-    "net/http"
-    "net/http/httptest"
-    "testing"
-    "time"
+	"bytes"
+	"database/sql"
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
+	"testing"
+	"time"
 
-    "coffeeee/backend/internal/api/middleware"
-    "coffeeee/backend/internal/config"
+	"coffeeee/backend/internal/api/middleware"
+	"coffeeee/backend/internal/config"
+	"coffeeee/backend/internal/database"
+	"coffeeee/backend/internal/services"
 
-    _ "github.com/mattn/go-sqlite3"
+	_ "github.com/mattn/go-sqlite3"
 )
 
 func setupCoffeeTestDB(t *testing.T) *sql.DB {
-    t.Helper()
-    db, err := sql.Open("sqlite3", ":memory:")
-    if err != nil { t.Fatalf("open db: %v", err) }
-    // minimal schema: users, user-owned coffees + triggers
-    _, err = db.Exec(`
+	t.Helper()
+	db, err := sql.Open("sqlite3", ":memory:")
+	if err != nil {
+		t.Fatalf("open db: %v", err)
+	}
+	// minimal schema: users, user-owned coffees + triggers
+	_, err = db.Exec(`
         CREATE TABLE users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             username VARCHAR(50) NOT NULL UNIQUE,
@@ -52,100 +56,125 @@ func setupCoffeeTestDB(t *testing.T) *sql.DB {
         CREATE INDEX idx_coffees_user_id ON coffees(user_id);
         CREATE INDEX idx_coffees_user_name ON coffees(user_id, name);
     `)
-    if err != nil { t.Fatalf("create schema: %v", err) }
-    // seed users
-    now := time.Now().Format(time.RFC3339)
-    _, err = db.Exec(`INSERT INTO users(id, username, email, password_hash, password_salt, created_at, updated_at) VALUES(1,'u1','u1@example.com','h','s',?,?)`, now, now)
-    if err != nil { t.Fatalf("seed user1: %v", err) }
-    _, err = db.Exec(`INSERT INTO users(id, username, email, password_hash, password_salt, created_at, updated_at) VALUES(2,'u2','u2@example.com','h','s',?,?)`, now, now)
-    if err != nil { t.Fatalf("seed user2: %v", err) }
-    return db
+	if err != nil {
+		t.Fatalf("create schema: %v", err)
+	}
+	// seed users
+	now := time.Now().Format(time.RFC3339)
+	_, err = db.Exec(`INSERT INTO users(id, username, email, password_hash, password_salt, created_at, updated_at) VALUES(1,'u1','u1@example.com','h','s',?,?)`, now, now)
+	if err != nil {
+		t.Fatalf("seed user1: %v", err)
+	}
+	_, err = db.Exec(`INSERT INTO users(id, username, email, password_hash, password_salt, created_at, updated_at) VALUES(2,'u2','u2@example.com','h','s',?,?)`, now, now)
+	if err != nil {
+		t.Fatalf("seed user2: %v", err)
+	}
+	return db
+}
+
+func setupCoffeeHandler(t *testing.T, db *sql.DB) *CoffeeHandler {
+	t.Helper()
+	queries := database.NewQueries(db)
+	coffeeService := services.NewCoffeeService(queries)
+	return NewCoffeeHandler(coffeeService, &config.Config{})
 }
 
 func TestCreateForUser_Validation(t *testing.T) {
-    db := setupCoffeeTestDB(t)
-    defer db.Close()
-    h := NewCoffeeHandler(db, &config.Config{})
+	db := setupCoffeeTestDB(t)
+	defer db.Close()
+	h := setupCoffeeHandler(t, db)
 
-    req := httptest.NewRequest("POST", "/api/v1/coffees", bytes.NewBufferString(`{}`))
-    req = req.WithContext(middleware.WithAuthenticatedUserID(req.Context(), 1))
-    w := httptest.NewRecorder()
-    h.CreateForUser(w, req)
-    if w.Code != http.StatusBadRequest {
-        t.Fatalf("expected 400, got %d", w.Code)
-    }
+	req := httptest.NewRequest("POST", "/api/v1/coffees", bytes.NewBufferString(`{}`))
+	req = req.WithContext(middleware.WithAuthenticatedUserID(req.Context(), 1))
+	w := httptest.NewRecorder()
+	h.CreateForUser(w, req)
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d", w.Code)
+	}
 }
 
 func TestCreateForUser_IdempotentPerUser_AndPhotoUpdate(t *testing.T) {
-    db := setupCoffeeTestDB(t)
-    defer db.Close()
-    h := NewCoffeeHandler(db, &config.Config{})
+	db := setupCoffeeTestDB(t)
+	defer db.Close()
+	h := setupCoffeeHandler(t, db)
 
-    payload := `{"name":"Ethiopia Yirgacheffe","roaster":"Blue Bottle","origin":"Ethiopia","description":"Floral"}`
-    req := httptest.NewRequest("POST", "/api/v1/coffees", bytes.NewBufferString(payload))
-    req = req.WithContext(middleware.WithAuthenticatedUserID(req.Context(), 1))
-    w := httptest.NewRecorder()
-    h.CreateForUser(w, req)
-    if w.Code != http.StatusCreated {
-        t.Fatalf("expected 201, got %d", w.Code)
-    }
-    var resp struct{ Coffee map[string]any `json:"coffee"` }
-    if err := json.NewDecoder(w.Body).Decode(&resp); err != nil {
-        t.Fatalf("invalid json resp: %v", err)
-    }
-    id1, ok := resp.Coffee["id"].(float64)
-    if !ok || resp.Coffee["name"] != "Ethiopia Yirgacheffe" {
-        t.Fatalf("unexpected response: %#v", resp.Coffee)
-    }
-    // Idempotent per user: second call returns same coffee; also updates photo_path
-    payload2 := `{"name":"Ethiopia Yirgacheffe","roaster":"Blue Bottle","origin":"Ethiopia","description":"Floral","photoPath":"uploads/coffee-photos/1/`+time.Now().Format("20060102150405")+`/p.jpg"}`
-    req2 := httptest.NewRequest("POST", "/api/v1/coffees", bytes.NewBufferString(payload2))
-    req2 = req2.WithContext(middleware.WithAuthenticatedUserID(req2.Context(), 1))
-    w2 := httptest.NewRecorder()
-    h.CreateForUser(w2, req2)
-    if w2.Code != http.StatusCreated {
-        t.Fatalf("expected 201 on second call, got %d", w2.Code)
-    }
-    var resp2 struct{ Coffee map[string]any `json:"coffee"` }
-    if err := json.NewDecoder(w2.Body).Decode(&resp2); err != nil {
-        t.Fatalf("invalid json resp2: %v", err)
-    }
-    id2, ok := resp2.Coffee["id"].(float64)
-    if !ok || int64(id2) != int64(id1) {
-        t.Fatalf("expected same coffee id, got %v vs %v", id1, id2)
-    }
-    if resp2.Coffee["photoPath"] == nil {
-        t.Fatalf("expected photoPath to be set on second call")
-    }
+	payload := `{"name":"Ethiopia Yirgacheffe","roaster":"Blue Bottle","origin":"Ethiopia","description":"Floral"}`
+	req := httptest.NewRequest("POST", "/api/v1/coffees", bytes.NewBufferString(payload))
+	req = req.WithContext(middleware.WithAuthenticatedUserID(req.Context(), 1))
+	w := httptest.NewRecorder()
+	h.CreateForUser(w, req)
+	if w.Code != http.StatusCreated {
+		t.Fatalf("expected 201, got %d", w.Code)
+	}
+	var resp struct {
+		Coffee map[string]any `json:"coffee"`
+	}
+	if err := json.NewDecoder(w.Body).Decode(&resp); err != nil {
+		t.Fatalf("invalid json resp: %v", err)
+	}
+	id1, ok := resp.Coffee["id"].(float64)
+	if !ok || resp.Coffee["name"] != "Ethiopia Yirgacheffe" {
+		t.Fatalf("unexpected response: %#v", resp.Coffee)
+	}
+	// Idempotent per user: second call returns same coffee; also updates photo_path
+	payload2 := `{"name":"Ethiopia Yirgacheffe","roaster":"Blue Bottle","origin":"Ethiopia","description":"Floral","photoPath":"uploads/coffee-photos/1/` + time.Now().Format("20060102150405") + `/p.jpg"}`
+	req2 := httptest.NewRequest("POST", "/api/v1/coffees", bytes.NewBufferString(payload2))
+	req2 = req2.WithContext(middleware.WithAuthenticatedUserID(req2.Context(), 1))
+	w2 := httptest.NewRecorder()
+	h.CreateForUser(w2, req2)
+	if w2.Code != http.StatusCreated {
+		t.Fatalf("expected 201 on second call, got %d", w2.Code)
+	}
+	var resp2 struct {
+		Coffee map[string]any `json:"coffee"`
+	}
+	if err := json.NewDecoder(w2.Body).Decode(&resp2); err != nil {
+		t.Fatalf("invalid json resp2: %v", err)
+	}
+	id2, ok := resp2.Coffee["id"].(float64)
+	if !ok || int64(id2) != int64(id1) {
+		t.Fatalf("expected same coffee id, got %v vs %v", id1, id2)
+	}
+	if resp2.Coffee["photoPath"] == nil {
+		t.Fatalf("expected photoPath to be set on second call")
+	}
 }
 
 func TestCreateForUser_DistinctAcrossUsers(t *testing.T) {
-    db := setupCoffeeTestDB(t)
-    defer db.Close()
-    h := NewCoffeeHandler(db, &config.Config{})
+	db := setupCoffeeTestDB(t)
+	defer db.Close()
+	h := setupCoffeeHandler(t, db)
 
-    payload := `{"name":"Ethiopia Yirgacheffe","roaster":"Blue Bottle","origin":"Ethiopia"}`
-    // User 1
-    req1 := httptest.NewRequest("POST", "/api/v1/coffees", bytes.NewBufferString(payload))
-    req1 = req1.WithContext(middleware.WithAuthenticatedUserID(req1.Context(), 1))
-    w1 := httptest.NewRecorder()
-    h.CreateForUser(w1, req1)
-    if w1.Code != http.StatusCreated { t.Fatalf("u1 expected 201, got %d", w1.Code) }
-    var r1 struct{ Coffee map[string]any `json:"coffee"` }
-    _ = json.NewDecoder(w1.Body).Decode(&r1)
-    id1, _ := r1.Coffee["id"].(float64)
+	payload := `{"name":"Ethiopia Yirgacheffe","roaster":"Blue Bottle","origin":"Ethiopia"}`
+	// User 1
+	req1 := httptest.NewRequest("POST", "/api/v1/coffees", bytes.NewBufferString(payload))
+	req1 = req1.WithContext(middleware.WithAuthenticatedUserID(req1.Context(), 1))
+	w1 := httptest.NewRecorder()
+	h.CreateForUser(w1, req1)
+	if w1.Code != http.StatusCreated {
+		t.Fatalf("u1 expected 201, got %d", w1.Code)
+	}
+	var r1 struct {
+		Coffee map[string]any `json:"coffee"`
+	}
+	_ = json.NewDecoder(w1.Body).Decode(&r1)
+	id1, _ := r1.Coffee["id"].(float64)
 
-    // User 2 same payload → different coffee id
-    req2 := httptest.NewRequest("POST", "/api/v1/coffees", bytes.NewBufferString(payload))
-    req2 = req2.WithContext(middleware.WithAuthenticatedUserID(req2.Context(), 2))
-    w2 := httptest.NewRecorder()
-    h.CreateForUser(w2, req2)
-    if w2.Code != http.StatusCreated { t.Fatalf("u2 expected 201, got %d", w2.Code) }
-    var r2 struct{ Coffee map[string]any `json:"coffee"` }
-    _ = json.NewDecoder(w2.Body).Decode(&r2)
-    id2, _ := r2.Coffee["id"].(float64)
+	// User 2 same payload → different coffee id
+	req2 := httptest.NewRequest("POST", "/api/v1/coffees", bytes.NewBufferString(payload))
+	req2 = req2.WithContext(middleware.WithAuthenticatedUserID(req2.Context(), 2))
+	w2 := httptest.NewRecorder()
+	h.CreateForUser(w2, req2)
+	if w2.Code != http.StatusCreated {
+		t.Fatalf("u2 expected 201, got %d", w2.Code)
+	}
+	var r2 struct {
+		Coffee map[string]any `json:"coffee"`
+	}
+	_ = json.NewDecoder(w2.Body).Decode(&r2)
+	id2, _ := r2.Coffee["id"].(float64)
 
-    if int64(id1) == int64(id2) {
-        t.Fatalf("expected different coffee ids for different users")
-    }
+	if int64(id1) == int64(id2) {
+		t.Fatalf("expected different coffee ids for different users")
+	}
 }
