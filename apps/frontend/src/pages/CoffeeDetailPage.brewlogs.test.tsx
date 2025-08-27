@@ -22,7 +22,10 @@ describe('CoffeeDetailPage BrewLogList', () => {
             </MemoryRouter>
         )
 
-        await waitFor(() => expect(getSpy).toHaveBeenCalledWith('/api/v1/brewlogs?coffeeId=1&limit=20&offset=0', expect.anything()))
+        await waitFor(() => {
+            const calls = getSpy.mock.calls.map((c) => c[0])
+            expect(calls).toContain('/api/v1/brewlogs?coffeeId=1&limit=20&offset=0')
+        })
         const list = await screen.findByTestId('brewlog-list')
         expect(list).toBeInTheDocument()
         const itemsEls = await screen.findAllByTestId('brewlog-item')

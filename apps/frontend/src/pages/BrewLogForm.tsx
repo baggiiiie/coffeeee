@@ -3,6 +3,8 @@ import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { Box, Typography, Paper, TextField, Button, Stack, Snackbar, Alert, MenuItem, Select, InputLabel, FormControl } from '@mui/material'
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import api from '../utils/api'
+import { getWithCache } from '../utils/fetchCache'
+import { useCachedGet } from '../hooks/useCachedGet'
 import AITastingAssistant from '../components/AITastingAssistant'
 import AIBrewRecommendationDialog from '../components/AIBrewRecommendationDialog'
 import { Alert as MuiAlert } from '@mui/material'
@@ -13,7 +15,7 @@ const BrewLogForm: React.FC = () => {
     const [params] = useSearchParams()
     const coffeeId = useMemo(() => Number(params.get('coffeeId') || '0'), [params])
     const [selectedCoffeeId, setSelectedCoffeeId] = useState<number>(coffeeId)
-    const [selectedCoffeeName, setSelectedCoffeeName] = useState<string>('')
+    // selectedCoffeeName becomes derived from fetch hook
     const [brewMethod, setBrewMethod] = useState('')
     const [coffeeWeight, setCoffeeWeight] = useState<string>('')
     const [waterWeight, setWaterWeight] = useState<string>('')
@@ -28,7 +30,23 @@ const BrewLogForm: React.FC = () => {
     const [recoOpen, setRecoOpen] = useState(false)
     const [showRecoCTA, setShowRecoCTA] = useState(false)
     const [prefillNote, setPrefillNote] = useState<string | null>(null)
-    const [coffees, setCoffees] = useState<Array<{ id: number; name: string }>>([])
+    // Use cached fetches to reduce boilerplate and duplicate calls
+    const coffeesRes = useCachedGet<{ coffees: Array<{ id: number; name: string }> }>({
+        url: !selectedCoffeeId ? '/api/v1/coffees' : null,
+        ttlMs: 60000,
+        deps: [selectedCoffeeId],
+        initial: { coffees: [] },
+    })
+    const coffees = useMemo(() => coffeesRes.data?.coffees ?? [], [coffeesRes.data])
+    const selectedCoffeeRes = useCachedGet<{ coffee?: { name?: string } }>({
+        url: selectedCoffeeId > 0 ? `/api/v1/coffees/${selectedCoffeeId}` : null,
+        ttlMs: 60000,
+        deps: [selectedCoffeeId],
+    })
+    const selectedCoffeeName = useMemo(() => {
+        const name = selectedCoffeeRes.data?.coffee?.name
+        return name && String(name).trim() ? String(name) : (selectedCoffeeId > 0 ? 'unknown coffee' : '')
+    }, [selectedCoffeeId, selectedCoffeeRes.data])
     const headingRef = useRef<HTMLHeadingElement>(null)
 
     const initialBrewParams = location?.state?.initialBrewParams as any | undefined
@@ -49,50 +67,7 @@ const BrewLogForm: React.FC = () => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
 
-    useEffect(() => {
-        // Load user coffees if no coffeeId present
-        let active = true
-        const controller = new AbortController()
-        if (!selectedCoffeeId) {
-            (async () => {
-                try {
-                    const res = await api.get('/api/v1/coffees', { signal: controller.signal })
-                    if (active) setCoffees(res.data?.coffees ?? [])
-                } catch (e: any) {
-                    if (e?.name === 'CanceledError' || e?.code === 'ERR_CANCELED') return
-                    // ignore; selection remains empty
-                }
-            })()
-        }
-        return () => {
-            active = false
-            controller.abort()
-        }
-    }, [selectedCoffeeId])
-
-    // When a specific coffeeId is provided, fetch its name for display
-    useEffect(() => {
-        let active = true
-        const controller = new AbortController()
-        if (selectedCoffeeId > 0) {
-            (async () => {
-                try {
-                    const res = await api.get(`/api/v1/coffees/${selectedCoffeeId}`, { signal: controller.signal })
-                    const name = res.data?.coffee?.name
-                    if (active) setSelectedCoffeeName(name && String(name).trim() ? String(name) : 'unknown coffee')
-                } catch (e: any) {
-                    if (e?.name === 'CanceledError' || e?.code === 'ERR_CANCELED') return
-                    if (active) setSelectedCoffeeName('unknown coffee')
-                }
-            })()
-        } else {
-            setSelectedCoffeeName('')
-        }
-        return () => {
-            active = false
-            controller.abort()
-        }
-    }, [selectedCoffeeId])
+    // Removed manual effects; data now comes from useCachedGet hooks
 
     const ratio = useMemo(() => {
         const cw = parseFloat(coffeeWeight)

@@ -2,6 +2,8 @@ import React, { useEffect, useMemo, useState } from 'react'
 import { Box, Typography, Paper, Stack, Button, CircularProgress, Alert, TextField } from '@mui/material'
 import { useNavigate, useParams } from 'react-router-dom'
 import api from '../utils/api'
+import { getWithCache } from '../utils/fetchCache'
+import { useCachedGet } from '../hooks/useCachedGet'
 import AIBrewRecommendationDialog from '../components/AIBrewRecommendationDialog'
 
 type BrewLog = {
@@ -23,8 +25,6 @@ const BrewLogDetailPage: React.FC = () => {
   const { id } = useParams()
   const navigate = useNavigate()
   const logId = useMemo(() => Number(id || '0'), [id])
-  const [data, setData] = useState<BrewLog | null>(null)
-  const [loading, setLoading] = useState(false)
   const [error, setError] = useState<{ status: number; message: string } | null>(null)
   const [editMode, setEditMode] = useState(false)
   const [recoOpen, setRecoOpen] = useState(false)
@@ -41,29 +41,22 @@ const BrewLogDetailPage: React.FC = () => {
   const [rating, setRating] = useState('')
   const [saving, setSaving] = useState(false)
 
-  const load = async (signal?: AbortSignal) => {
-    if (!logId) return
-    setLoading(true)
-    setError(null)
-    try {
-      const res = await api.get(`/api/v1/brewlogs/${logId}`, { signal })
-      setData(res.data as BrewLog)
-    } catch (e: any) {
-      // Ignore aborts (React StrictMode mounts/unmounts quickly in dev)
-      if (e?.name === 'CanceledError' || e?.code === 'ERR_CANCELED') return
-      const status = e?.response?.status || 0
-      const message = e?.response?.data?.message || 'Failed to load brew log'
-      setError({ status, message })
-    } finally {
-      setLoading(false)
-    }
-  }
-
+  const brewRes = useCachedGet<BrewLog>({
+    url: logId ? `/api/v1/brewlogs/${logId}` : null,
+    ttlMs: 10000,
+    deps: [logId],
+  })
+  const data = brewRes.data ?? null
+  const loading = brewRes.loading
   useEffect(() => {
-    const controller = new AbortController()
-    load(controller.signal)
-    return () => controller.abort()
-  }, [logId])
+    if (brewRes.error) {
+      const status = brewRes.error?.response?.status || 0
+      const message = brewRes.error?.response?.data?.message || 'Failed to load brew log'
+      setError({ status, message })
+    } else {
+      setError(null)
+    }
+  }, [brewRes.error])
 
   // Load coffee name for display
   useEffect(() => {
@@ -71,7 +64,7 @@ const BrewLogDetailPage: React.FC = () => {
     const fetchCoffeeName = async (cid: number) => {
       if (!cid) return setCoffeeName('')
       try {
-        const res = await api.get(`/api/v1/coffees/${cid}`, { signal: controller.signal })
+        const res = await getWithCache(`/api/v1/coffees/${cid}`, { signal: controller.signal, ttlMs: 60000 })
         const name = res.data?.coffee?.name
         setCoffeeName(name && String(name).trim() ? String(name) : 'unknown coffee')
       } catch (e: any) {
@@ -129,7 +122,7 @@ const BrewLogDetailPage: React.FC = () => {
       payload.rating = rating === '' ? null : parseInt(rating, 10)
       await api.put(`/api/v1/brewlogs/${data.id}`, payload)
       setEditMode(false)
-      await load()
+      await brewRes.refetch({ bypassCache: true })
     } catch (e: any) {
       const status = e?.response?.status || 0
       const message = e?.response?.data?.message || 'Failed to save changes'
@@ -185,9 +178,6 @@ const BrewLogDetailPage: React.FC = () => {
             fullWidth
             disabled={!editMode}
           />
-          {!editMode && (
-            <Typography variant="body2">{data.brewMethod}</Typography>
-          )}
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
             <TextField label="Coffee (g)" value={editMode ? coffeeWeight : (data.coffeeWeight ?? '')} onChange={(e) => setCoffeeWeight(e.target.value)} inputProps={{ inputMode: 'decimal', 'data-testid': 'coffee-weight' }} fullWidth disabled={!editMode} />
             <TextField label="Water (g)" value={editMode ? waterWeight : (data.waterWeight ?? '')} onChange={(e) => setWaterWeight(e.target.value)} inputProps={{ inputMode: 'decimal', 'data-testid': 'water-weight' }} fullWidth disabled={!editMode} />

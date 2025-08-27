@@ -2,6 +2,8 @@ import React, { useEffect, useMemo, useState } from 'react'
 import { Box, Typography, Paper, Button, Alert, Stack, List, ListItemButton, ListItemText, CircularProgress } from '@mui/material'
 import { useParams, Link as RouterLink, useNavigate } from 'react-router-dom'
 import api from '../utils/api'
+import { getWithCache } from '../utils/fetchCache'
+import { useCachedGet } from '../hooks/useCachedGet'
 
 type BrewLog = {
     id: number
@@ -26,7 +28,7 @@ const BrewLogList: React.FC<{ coffeeId: number }> = ({ coffeeId }) => {
         setLoading(true)
         setError(null)
         try {
-            const res = await api.get(`/api/v1/brewlogs?coffeeId=${coffeeId}&limit=${limit}&offset=${reset ? 0 : offset}`, { signal })
+            const res = await getWithCache(`/api/v1/brewlogs?coffeeId=${coffeeId}&limit=${limit}&offset=${reset ? 0 : offset}`, { signal, ttlMs: 15000 })
             const page: BrewLog[] = res.data?.brewLogs ?? []
             setItems((prev) => (reset ? page : [...prev, ...page]))
             setHasMore(page.length === limit)
@@ -126,30 +128,14 @@ const BrewLogList: React.FC<{ coffeeId: number }> = ({ coffeeId }) => {
 const CoffeeDetailPage: React.FC = () => {
     const { id } = useParams()
     const coffeeIdNum = useMemo(() => Number(id || '0'), [id])
-    const [coffee, setCoffee] = useState<any | null>(null)
-    const [loading, setLoading] = useState(false)
-    const [error, setError] = useState<string | null>(null)
-
-    useEffect(() => {
-        const controller = new AbortController()
-        const load = async () => {
-            if (!coffeeIdNum) return
-            setLoading(true)
-            setError(null)
-            try {
-                const res = await api.get(`/api/v1/coffees/${coffeeIdNum}`, { signal: controller.signal })
-                setCoffee(res.data?.coffee ?? null)
-            } catch (e: any) {
-                if (e?.name === 'CanceledError' || e?.code === 'ERR_CANCELED') return
-                const msg = e?.response?.data?.message || 'Failed to load coffee'
-                setError(msg)
-            } finally {
-                setLoading(false)
-            }
-        }
-        load()
-        return () => controller.abort()
-    }, [coffeeIdNum])
+    const coffeeRes = useCachedGet<{ coffee: any } | null>({
+        url: coffeeIdNum > 0 ? `/api/v1/coffees/${coffeeIdNum}` : null,
+        ttlMs: 60000,
+        deps: [coffeeIdNum],
+    })
+    const coffee = coffeeRes.data?.coffee ?? null
+    const loading = coffeeRes.loading
+    const error = coffeeRes.error ? (coffeeRes.error?.response?.data?.message || 'Failed to load coffee') : null
     return (
         <Box sx={{ py: 4 }}>
             <Typography variant="h4" gutterBottom>
