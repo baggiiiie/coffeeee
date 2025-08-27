@@ -22,16 +22,17 @@ const BrewLogList: React.FC<{ coffeeId: number }> = ({ coffeeId }) => {
     const [hasMore, setHasMore] = useState(true)
     const limit = 20
 
-    const load = async (reset = false) => {
+    const load = async (reset = false, signal?: AbortSignal) => {
         setLoading(true)
         setError(null)
         try {
-            const res = await api.get(`/api/v1/brewlogs?coffeeId=${coffeeId}&limit=${limit}&offset=${reset ? 0 : offset}`)
+            const res = await api.get(`/api/v1/brewlogs?coffeeId=${coffeeId}&limit=${limit}&offset=${reset ? 0 : offset}`, { signal })
             const page: BrewLog[] = res.data?.brewLogs ?? []
             setItems((prev) => (reset ? page : [...prev, ...page]))
             setHasMore(page.length === limit)
             setOffset((prev) => (reset ? limit : prev + limit))
         } catch (e: any) {
+            if (e?.name === 'CanceledError' || e?.code === 'ERR_CANCELED') return
             const msg = e?.response?.data?.message || 'Failed to load brew history'
             setError(msg)
         } finally {
@@ -40,8 +41,10 @@ const BrewLogList: React.FC<{ coffeeId: number }> = ({ coffeeId }) => {
     }
 
     useEffect(() => {
-        // initial load
-        load(true)
+        // initial load with cancel support to avoid duplicate work in StrictMode
+        const controller = new AbortController()
+        load(true, controller.signal)
+        return () => controller.abort()
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [coffeeId])
 
@@ -128,14 +131,16 @@ const CoffeeDetailPage: React.FC = () => {
     const [error, setError] = useState<string | null>(null)
 
     useEffect(() => {
+        const controller = new AbortController()
         const load = async () => {
             if (!coffeeIdNum) return
             setLoading(true)
             setError(null)
             try {
-                const res = await api.get(`/api/v1/coffees/${coffeeIdNum}`)
+                const res = await api.get(`/api/v1/coffees/${coffeeIdNum}`, { signal: controller.signal })
                 setCoffee(res.data?.coffee ?? null)
             } catch (e: any) {
+                if (e?.name === 'CanceledError' || e?.code === 'ERR_CANCELED') return
                 const msg = e?.response?.data?.message || 'Failed to load coffee'
                 setError(msg)
             } finally {
@@ -143,6 +148,7 @@ const CoffeeDetailPage: React.FC = () => {
             }
         }
         load()
+        return () => controller.abort()
     }, [coffeeIdNum])
     return (
         <Box sx={{ py: 4 }}>

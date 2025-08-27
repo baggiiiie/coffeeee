@@ -41,14 +41,16 @@ const BrewLogDetailPage: React.FC = () => {
   const [rating, setRating] = useState('')
   const [saving, setSaving] = useState(false)
 
-  const load = async () => {
+  const load = async (signal?: AbortSignal) => {
     if (!logId) return
     setLoading(true)
     setError(null)
     try {
-      const res = await api.get(`/api/v1/brewlogs/${logId}`)
+      const res = await api.get(`/api/v1/brewlogs/${logId}`, { signal })
       setData(res.data as BrewLog)
     } catch (e: any) {
+      // Ignore aborts (React StrictMode mounts/unmounts quickly in dev)
+      if (e?.name === 'CanceledError' || e?.code === 'ERR_CANCELED') return
       const status = e?.response?.status || 0
       const message = e?.response?.data?.message || 'Failed to load brew log'
       setError({ status, message })
@@ -57,21 +59,28 @@ const BrewLogDetailPage: React.FC = () => {
     }
   }
 
-  useEffect(() => { load() }, [logId])
+  useEffect(() => {
+    const controller = new AbortController()
+    load(controller.signal)
+    return () => controller.abort()
+  }, [logId])
 
   // Load coffee name for display
   useEffect(() => {
+    const controller = new AbortController()
     const fetchCoffeeName = async (cid: number) => {
       if (!cid) return setCoffeeName('')
       try {
-        const res = await api.get(`/api/v1/coffees/${cid}`)
+        const res = await api.get(`/api/v1/coffees/${cid}`, { signal: controller.signal })
         const name = res.data?.coffee?.name
         setCoffeeName(name && String(name).trim() ? String(name) : 'unknown coffee')
-      } catch {
+      } catch (e: any) {
+        if (e?.name === 'CanceledError' || e?.code === 'ERR_CANCELED') return
         setCoffeeName('unknown coffee')
       }
     }
     if (data?.coffeeId) fetchCoffeeName(data.coffeeId)
+    return () => controller.abort()
   }, [data?.coffeeId])
 
   const enterEditMode = () => {

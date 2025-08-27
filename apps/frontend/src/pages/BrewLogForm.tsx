@@ -52,31 +52,36 @@ const BrewLogForm: React.FC = () => {
     useEffect(() => {
         // Load user coffees if no coffeeId present
         let active = true
+        const controller = new AbortController()
         if (!selectedCoffeeId) {
             (async () => {
                 try {
-                    const res = await api.get('/api/v1/coffees')
+                    const res = await api.get('/api/v1/coffees', { signal: controller.signal })
                     if (active) setCoffees(res.data?.coffees ?? [])
-                } catch {
+                } catch (e: any) {
+                    if (e?.name === 'CanceledError' || e?.code === 'ERR_CANCELED') return
                     // ignore; selection remains empty
                 }
             })()
         }
         return () => {
             active = false
+            controller.abort()
         }
     }, [selectedCoffeeId])
 
     // When a specific coffeeId is provided, fetch its name for display
     useEffect(() => {
         let active = true
+        const controller = new AbortController()
         if (selectedCoffeeId > 0) {
             (async () => {
                 try {
-                    const res = await api.get(`/api/v1/coffees/${selectedCoffeeId}`)
+                    const res = await api.get(`/api/v1/coffees/${selectedCoffeeId}`, { signal: controller.signal })
                     const name = res.data?.coffee?.name
                     if (active) setSelectedCoffeeName(name && String(name).trim() ? String(name) : 'unknown coffee')
-                } catch {
+                } catch (e: any) {
+                    if (e?.name === 'CanceledError' || e?.code === 'ERR_CANCELED') return
                     if (active) setSelectedCoffeeName('unknown coffee')
                 }
             })()
@@ -85,6 +90,7 @@ const BrewLogForm: React.FC = () => {
         }
         return () => {
             active = false
+            controller.abort()
         }
     }, [selectedCoffeeId])
 
