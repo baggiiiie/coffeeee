@@ -38,6 +38,38 @@ type CreateCoffeeInput struct {
 	PhotoPath   *string `json:"photoPath,omitempty"`
 }
 
+// GetForUserByID returns a single coffee owned by the given user.
+func (s *CoffeeService) GetForUserByID(ctx context.Context, coffeeID int64, userID int64) (*CoffeeOutput, error) {
+	row, err := s.queries.GetCoffeeByID(ctx, db.GetCoffeeByIDParams{ID: coffeeID, UserID: userID})
+	if err != nil {
+		return nil, err
+	}
+
+	out := &CoffeeOutput{
+		ID:        row.ID,
+		Name:      row.Name,
+		CreatedAt: row.CreatedAt.Format(time.RFC3339),
+		UpdatedAt: row.UpdatedAt.Format(time.RFC3339),
+	}
+	if row.Origin.Valid {
+		v := row.Origin.String
+		out.Origin = &v
+	}
+	if row.Roaster.Valid {
+		v := row.Roaster.String
+		out.Roaster = &v
+	}
+	if row.Description.Valid {
+		v := row.Description.String
+		out.Description = &v
+	}
+	if row.PhotoPath.Valid {
+		v := row.PhotoPath.String
+		out.PhotoPath = &v
+	}
+	return out, nil
+}
+
 func (s *CoffeeService) ListForUser(ctx context.Context, userID int64) ([]CoffeeOutput, error) {
 	coffees, err := s.queries.ListCoffeesForUser(ctx, userID)
 	if err != nil {

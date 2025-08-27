@@ -4,9 +4,13 @@ import (
 	"coffeeee/backend/internal/api/middleware"
 	"coffeeee/backend/internal/config"
 	"coffeeee/backend/internal/services"
+	"database/sql"
 	"encoding/json"
 	"log"
 	"net/http"
+	"strconv"
+
+	"github.com/gorilla/mux"
 )
 
 type CoffeeHandler struct {
@@ -27,8 +31,40 @@ func (h *CoffeeHandler) List(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *CoffeeHandler) Get(w http.ResponseWriter, r *http.Request) {
-	// TODO: Implement get coffee logic
-	w.WriteHeader(http.StatusNotImplemented)
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+
+	userID, ok := middleware.GetAuthenticatedUserID(r.Context())
+	if !ok || userID == 0 {
+		w.WriteHeader(http.StatusUnauthorized)
+		_ = json.NewEncoder(w).Encode(map[string]string{
+			"code":    "AUTHENTICATION_ERROR",
+			"message": "Invalid or missing authentication token",
+		})
+		return
+	}
+
+	vars := mux.Vars(r)
+	idStr := vars["id"]
+	coffeeID, err := strconv.ParseInt(idStr, 10, 64)
+	if err != nil || coffeeID <= 0 {
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(map[string]string{"code": "VALIDATION_ERROR", "message": "invalid id"})
+		return
+	}
+
+	coffee, err := h.coffeeService.GetForUserByID(r.Context(), coffeeID, userID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			w.WriteHeader(http.StatusNotFound)
+			_ = json.NewEncoder(w).Encode(map[string]string{"code": "NOT_FOUND", "message": "coffee not found"})
+			return
+		}
+		w.WriteHeader(http.StatusInternalServerError)
+		_ = json.NewEncoder(w).Encode(map[string]string{"code": "DATABASE_ERROR", "message": "failed to read coffee"})
+		return
+	}
+
+	_ = json.NewEncoder(w).Encode(map[string]any{"coffee": coffee})
 }
 
 func (h *CoffeeHandler) Create(w http.ResponseWriter, r *http.Request) {

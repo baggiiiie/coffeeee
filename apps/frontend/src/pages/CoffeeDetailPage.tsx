@@ -123,12 +123,49 @@ const BrewLogList: React.FC<{ coffeeId: number }> = ({ coffeeId }) => {
 const CoffeeDetailPage: React.FC = () => {
     const { id } = useParams()
     const coffeeIdNum = useMemo(() => Number(id || '0'), [id])
+    const [coffee, setCoffee] = useState<any | null>(null)
+    const [loading, setLoading] = useState(false)
+    const [error, setError] = useState<string | null>(null)
+
+    useEffect(() => {
+        const load = async () => {
+            if (!coffeeIdNum) return
+            setLoading(true)
+            setError(null)
+            try {
+                const res = await api.get(`/api/v1/coffees/${coffeeIdNum}`)
+                setCoffee(res.data?.coffee ?? null)
+            } catch (e: any) {
+                const msg = e?.response?.data?.message || 'Failed to load coffee'
+                setError(msg)
+            } finally {
+                setLoading(false)
+            }
+        }
+        load()
+    }, [coffeeIdNum])
     return (
         <Box sx={{ py: 4 }}>
             <Typography variant="h4" gutterBottom>
                 Coffee Detail
             </Typography>
             <Paper sx={{ p: 4, mb: 2 }}>
+                {loading && (
+                    <Box sx={{ mb: 2 }}>
+                        <CircularProgress size={20} />
+                    </Box>
+                )}
+                {error && (
+                    <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>
+                )}
+                {coffee && (
+                    <Stack spacing={1} sx={{ mb: 2 }}>
+                        <Typography variant="h6">{coffee.name}</Typography>
+                        {coffee.roaster && <Typography variant="body2">Roaster: {coffee.roaster}</Typography>}
+                        {coffee.origin && <Typography variant="body2">Origin: {coffee.origin}</Typography>}
+                        {coffee.description && <Typography variant="body2">{coffee.description}</Typography>}
+                    </Stack>
+                )}
                 {coffeeIdNum > 0 && (
                     <Button
                         variant="contained"
