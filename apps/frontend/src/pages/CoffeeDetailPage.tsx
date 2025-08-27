@@ -129,9 +129,6 @@ const CoffeeDetailPage: React.FC = () => {
                 Coffee Detail
             </Typography>
             <Paper sx={{ p: 4, mb: 2 }}>
-                <Typography variant="body1" gutterBottom>
-                    Coffee detail page will be implemented here.
-                </Typography>
                 {coffeeIdNum > 0 && (
                     <Button
                         variant="contained"

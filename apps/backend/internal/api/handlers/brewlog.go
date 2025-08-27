@@ -1,15 +1,17 @@
 package handlers
 
 import (
-	"coffeeee/backend/internal/api/middleware"
-	"coffeeee/backend/internal/config"
-	"coffeeee/backend/internal/database"
-	db "coffeeee/backend/internal/database/sqlc"
-	"database/sql"
-	"encoding/json"
-	"net/http"
-	"strings"
+    "coffeeee/backend/internal/api/middleware"
+    "coffeeee/backend/internal/config"
+    "coffeeee/backend/internal/database"
+    db "coffeeee/backend/internal/database/sqlc"
+    "database/sql"
+    "encoding/json"
+    "net/http"
+    "strings"
     "strconv"
+    
+    "github.com/gorilla/mux"
 )
 
 type BrewLogHandler struct {
@@ -154,8 +156,103 @@ func (h *BrewLogHandler) List(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *BrewLogHandler) Get(w http.ResponseWriter, r *http.Request) {
-	// TODO: Implement get brew log logic
-	w.WriteHeader(http.StatusNotImplemented)
+    w.Header().Set("Content-Type", "application/json; charset=utf-8")
+
+    userID, ok := middleware.GetAuthenticatedUserID(r.Context())
+    if !ok || userID == 0 {
+        w.WriteHeader(http.StatusUnauthorized)
+        _ = json.NewEncoder(w).Encode(map[string]string{
+            "code":    "AUTHENTICATION_ERROR",
+            "message": "Invalid or missing authentication token",
+        })
+        return
+    }
+
+    vars := mux.Vars(r)
+    idStr := strings.TrimSpace(vars["id"])
+    id, err := strconv.ParseInt(idStr, 10, 64)
+    if err != nil || id <= 0 {
+        w.WriteHeader(http.StatusBadRequest)
+        _ = json.NewEncoder(w).Encode(map[string]string{"code": "VALIDATION_ERROR", "message": "invalid id"})
+        return
+    }
+
+    // Read brew log and enforce ownership
+    type rowT struct {
+        ID              int64
+        UserID          int64
+        CoffeeID        int64
+        BrewMethod      string
+        CoffeeWeight    sql.NullFloat64
+        WaterWeight     sql.NullFloat64
+        GrindSize       sql.NullString
+        WaterTemperature sql.NullFloat64
+        BrewTime        sql.NullInt64
+        TastingNotes    sql.NullString
+        Rating          sql.NullInt64
+        CreatedAt       string
+    }
+    const sqlSel = `
+        SELECT id, user_id, coffee_id, brew_method,
+               coffee_weight, water_weight, grind_size,
+               water_temperature, brew_time, tasting_notes,
+               rating,
+               strftime('%Y-%m-%dT%H:%M:%fZ', created_at) AS created_at
+        FROM brew_logs
+        WHERE id = ?
+    `
+    var row rowT
+    err = h.db.QueryRowContext(r.Context(), sqlSel, id).Scan(
+        &row.ID, &row.UserID, &row.CoffeeID, &row.BrewMethod,
+        &row.CoffeeWeight, &row.WaterWeight, &row.GrindSize,
+        &row.WaterTemperature, &row.BrewTime, &row.TastingNotes,
+        &row.Rating, &row.CreatedAt,
+    )
+    if err == sql.ErrNoRows {
+        w.WriteHeader(http.StatusNotFound)
+        _ = json.NewEncoder(w).Encode(map[string]string{"code": "NOT_FOUND", "message": "brew log not found"})
+        return
+    } else if err != nil {
+        w.WriteHeader(http.StatusInternalServerError)
+        _ = json.NewEncoder(w).Encode(map[string]string{"code": "DATABASE_ERROR", "message": "failed to read brew log"})
+        return
+    }
+    if row.UserID != userID {
+        w.WriteHeader(http.StatusForbidden)
+        _ = json.NewEncoder(w).Encode(map[string]string{"code": "FORBIDDEN", "message": "brew log not owned by user"})
+        return
+    }
+
+    type outT struct {
+        ID               int64    `json:"id"`
+        UserID           int64    `json:"userId"`
+        CoffeeID         int64    `json:"coffeeId"`
+        BrewMethod       string   `json:"brewMethod"`
+        CoffeeWeight     *float64 `json:"coffeeWeight,omitempty"`
+        WaterWeight      *float64 `json:"waterWeight,omitempty"`
+        GrindSize        *string  `json:"grindSize,omitempty"`
+        WaterTemperature *float64 `json:"waterTemperature,omitempty"`
+        BrewTime         *int64   `json:"brewTime,omitempty"`
+        TastingNotes     *string  `json:"tastingNotes,omitempty"`
+        Rating           *int64   `json:"rating,omitempty"`
+        CreatedAt        string   `json:"createdAt"`
+    }
+    out := outT{
+        ID:         row.ID,
+        UserID:     row.UserID,
+        CoffeeID:   row.CoffeeID,
+        BrewMethod: row.BrewMethod,
+        CreatedAt:  row.CreatedAt,
+    }
+    if row.CoffeeWeight.Valid { v := row.CoffeeWeight.Float64; out.CoffeeWeight = &v }
+    if row.WaterWeight.Valid { v := row.WaterWeight.Float64; out.WaterWeight = &v }
+    if row.GrindSize.Valid { v := row.GrindSize.String; out.GrindSize = &v }
+    if row.WaterTemperature.Valid { v := row.WaterTemperature.Float64; out.WaterTemperature = &v }
+    if row.BrewTime.Valid { v := row.BrewTime.Int64; out.BrewTime = &v }
+    if row.TastingNotes.Valid { v := row.TastingNotes.String; out.TastingNotes = &v }
+    if row.Rating.Valid { v := row.Rating.Int64; out.Rating = &v }
+
+    _ = json.NewEncoder(w).Encode(out)
 }
 
 func (h *BrewLogHandler) Create(w http.ResponseWriter, r *http.Request) {
@@ -360,8 +457,138 @@ func (h *BrewLogHandler) Create(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *BrewLogHandler) Update(w http.ResponseWriter, r *http.Request) {
-	// TODO: Implement update brew log logic
-	w.WriteHeader(http.StatusNotImplemented)
+    w.Header().Set("Content-Type", "application/json; charset=utf-8")
+
+    userID, ok := middleware.GetAuthenticatedUserID(r.Context())
+    if !ok || userID == 0 {
+        w.WriteHeader(http.StatusUnauthorized)
+        _ = json.NewEncoder(w).Encode(map[string]string{
+            "code":    "AUTHENTICATION_ERROR",
+            "message": "Invalid or missing authentication token",
+        })
+        return
+    }
+
+    vars := mux.Vars(r)
+    idStr := strings.TrimSpace(vars["id"])
+    id, err := strconv.ParseInt(idStr, 10, 64)
+    if err != nil || id <= 0 {
+        w.WriteHeader(http.StatusBadRequest)
+        _ = json.NewEncoder(w).Encode(map[string]string{"code": "VALIDATION_ERROR", "message": "invalid id"})
+        return
+    }
+
+    // Body: editable fields; coffeeId is immutable here
+    type reqBody struct {
+        BrewMethod       *string  `json:"brewMethod,omitempty"`
+        CoffeeWeight     *float64 `json:"coffeeWeight,omitempty"`
+        WaterWeight      *float64 `json:"waterWeight,omitempty"`
+        GrindSize        *string  `json:"grindSize,omitempty"`
+        WaterTemperature *float64 `json:"waterTemperature,omitempty"`
+        BrewTime         *int64   `json:"brewTime,omitempty"`
+        TastingNotes     *string  `json:"tastingNotes,omitempty"`
+        Rating           *int64   `json:"rating,omitempty"`
+    }
+    dec := json.NewDecoder(r.Body)
+    dec.DisallowUnknownFields()
+    var body reqBody
+    if err := dec.Decode(&body); err != nil {
+        w.WriteHeader(http.StatusBadRequest)
+        _ = json.NewEncoder(w).Encode(map[string]string{"code": "VALIDATION_ERROR", "message": "invalid JSON body"})
+        return
+    }
+
+    // Validate bounds
+    if body.BrewMethod != nil {
+        bm := strings.TrimSpace(*body.BrewMethod)
+        if bm == "" { w.WriteHeader(http.StatusBadRequest); _ = json.NewEncoder(w).Encode(map[string]string{"code": "VALIDATION_ERROR", "message": "brewMethod cannot be empty"}); return }
+    }
+    if body.CoffeeWeight != nil && (*body.CoffeeWeight < 0 || *body.CoffeeWeight > 200) {
+        w.WriteHeader(http.StatusBadRequest); _ = json.NewEncoder(w).Encode(map[string]string{"code": "VALIDATION_ERROR", "message": "coffeeWeight must be between 0 and 200"}); return
+    }
+    if body.WaterWeight != nil && (*body.WaterWeight < 0 || *body.WaterWeight > 3000) {
+        w.WriteHeader(http.StatusBadRequest); _ = json.NewEncoder(w).Encode(map[string]string{"code": "VALIDATION_ERROR", "message": "waterWeight must be between 0 and 3000"}); return
+    }
+    if body.WaterTemperature != nil && (*body.WaterTemperature < 0 || *body.WaterTemperature > 100) {
+        w.WriteHeader(http.StatusBadRequest); _ = json.NewEncoder(w).Encode(map[string]string{"code": "VALIDATION_ERROR", "message": "waterTemperature must be between 0 and 100"}); return
+    }
+    if body.BrewTime != nil && (*body.BrewTime < 0 || *body.BrewTime > 3600) {
+        w.WriteHeader(http.StatusBadRequest); _ = json.NewEncoder(w).Encode(map[string]string{"code": "VALIDATION_ERROR", "message": "brewTime must be between 0 and 3600 seconds"}); return
+    }
+    if body.Rating != nil && (*body.Rating < 1 || *body.Rating > 5) {
+        w.WriteHeader(http.StatusBadRequest); _ = json.NewEncoder(w).Encode(map[string]string{"code": "VALIDATION_ERROR", "message": "rating must be between 1 and 5"}); return
+    }
+
+    // Ensure brew log exists and user owns it
+    var ownerID int64
+    err = h.db.QueryRowContext(r.Context(), "SELECT user_id FROM brew_logs WHERE id = ?", id).Scan(&ownerID)
+    if err == sql.ErrNoRows {
+        w.WriteHeader(http.StatusNotFound)
+        _ = json.NewEncoder(w).Encode(map[string]string{"code": "NOT_FOUND", "message": "brew log not found"})
+        return
+    } else if err != nil {
+        w.WriteHeader(http.StatusInternalServerError)
+        _ = json.NewEncoder(w).Encode(map[string]string{"code": "DATABASE_ERROR", "message": "failed to lookup brew log"})
+        return
+    }
+    if ownerID != userID {
+        w.WriteHeader(http.StatusForbidden)
+        _ = json.NewEncoder(w).Encode(map[string]string{"code": "FORBIDDEN", "message": "brew log not owned by user"})
+        return
+    }
+
+    // Build UPDATE with provided fields only
+    setClauses := []string{}
+    args := []any{}
+    if body.BrewMethod != nil {
+        setClauses = append(setClauses, "brew_method = ?")
+        args = append(args, strings.TrimSpace(*body.BrewMethod))
+    }
+    if body.CoffeeWeight != nil {
+        setClauses = append(setClauses, "coffee_weight = ?")
+        args = append(args, nullIfNilFloat(body.CoffeeWeight))
+    }
+    if body.WaterWeight != nil {
+        setClauses = append(setClauses, "water_weight = ?")
+        args = append(args, nullIfNilFloat(body.WaterWeight))
+    }
+    if body.GrindSize != nil {
+        setClauses = append(setClauses, "grind_size = ?")
+        args = append(args, nullIfNilStringPtr(body.GrindSize))
+    }
+    if body.WaterTemperature != nil {
+        setClauses = append(setClauses, "water_temperature = ?")
+        args = append(args, nullIfNilFloat(body.WaterTemperature))
+    }
+    if body.BrewTime != nil {
+        setClauses = append(setClauses, "brew_time = ?")
+        args = append(args, nullIfNilInt(body.BrewTime))
+    }
+    if body.TastingNotes != nil {
+        setClauses = append(setClauses, "tasting_notes = ?")
+        args = append(args, nullIfNilStringPtr(body.TastingNotes))
+    }
+    if body.Rating != nil {
+        setClauses = append(setClauses, "rating = ?")
+        args = append(args, nullIfNilInt(body.Rating))
+    }
+
+    if len(setClauses) == 0 {
+        // nothing to update
+        // Return current state
+        r2 := r.Clone(r.Context())
+        h.Get(w, r2)
+        return
+    }
+    query := "UPDATE brew_logs SET " + strings.Join(setClauses, ", ") + " WHERE id = ? AND user_id = ?"
+    args = append(args, id, userID)
+    if _, err := h.db.ExecContext(r.Context(), query, args...); err != nil {
+        w.WriteHeader(http.StatusInternalServerError)
+        _ = json.NewEncoder(w).Encode(map[string]string{"code": "DATABASE_ERROR", "message": "failed to update brew log"})
+        return
+    }
+    // Return updated
+    h.Get(w, r)
 }
 
 func (h *BrewLogHandler) Delete(w http.ResponseWriter, r *http.Request) {

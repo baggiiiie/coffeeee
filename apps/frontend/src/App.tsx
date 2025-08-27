@@ -10,6 +10,7 @@ import CoffeeListPage from './pages/CoffeeListPage'
 import CoffeeDetailPage from './pages/CoffeeDetailPage'
 import CoffeeNewPage from './pages/CoffeeNewPage'
 import BrewLogForm from './pages/BrewLogForm'
+import BrewLogDetailPage from './pages/BrewLogDetailPage'
 import UserProfilePage from './pages/UserProfilePage'
 import { AuthProvider } from './context/AuthContext'
 import BrewingGuidesPage from './pages/BrewingGuidesPage'
@@ -55,7 +56,7 @@ function App() {
                         } />
                         <Route path="/brew-logs/:id" element={
                             <ProtectedRoute>
-                                <BrewLogForm />
+                                <BrewLogDetailPage />
                             </ProtectedRoute>
                         } />
                         <Route path="/profile" element={
