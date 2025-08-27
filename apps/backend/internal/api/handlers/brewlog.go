@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"strings"
+    "strconv"
 )
 
 type BrewLogHandler struct {
@@ -21,8 +22,111 @@ func NewBrewLogHandler(db *sql.DB, cfg *config.Config) *BrewLogHandler {
 }
 
 func (h *BrewLogHandler) List(w http.ResponseWriter, r *http.Request) {
-	// TODO: Implement list brew logs logic
-	w.WriteHeader(http.StatusNotImplemented)
+    w.Header().Set("Content-Type", "application/json; charset=utf-8")
+
+    userID, ok := middleware.GetAuthenticatedUserID(r.Context())
+    if !ok || userID == 0 {
+        w.WriteHeader(http.StatusUnauthorized)
+        _ = json.NewEncoder(w).Encode(map[string]string{
+            "code":    "AUTHENTICATION_ERROR",
+            "message": "Invalid or missing authentication token",
+        })
+        return
+    }
+
+    // Parse and validate query params
+    q := r.URL.Query()
+    coffeeIDStr := strings.TrimSpace(q.Get("coffeeId"))
+    if coffeeIDStr == "" {
+        w.WriteHeader(http.StatusBadRequest)
+        _ = json.NewEncoder(w).Encode(map[string]string{"code": "VALIDATION_ERROR", "message": "coffeeId is required"})
+        return
+    }
+    coffeeID, err := strconv.ParseInt(coffeeIDStr, 10, 64)
+    if err != nil || coffeeID <= 0 {
+            w.WriteHeader(http.StatusBadRequest)
+            _ = json.NewEncoder(w).Encode(map[string]string{"code": "VALIDATION_ERROR", "message": "coffeeId must be a positive integer"})
+            return
+    }
+
+    limit := int64(20)
+    if l := strings.TrimSpace(q.Get("limit")); l != "" {
+        if v, err := strconv.ParseInt(l, 10, 64); err == nil && v > 0 && v <= 100 {
+            limit = v
+        }
+    }
+    offset := int64(0)
+    if o := strings.TrimSpace(q.Get("offset")); o != "" {
+        if v, err := strconv.ParseInt(o, 10, 64); err == nil && v >= 0 {
+            offset = v
+        }
+    }
+
+    // Ensure coffee exists and is owned by the user
+    queries := database.NewQueries(h.db)
+    ownerID, err := queries.GetCoffeeOwnerID(r.Context(), coffeeID)
+    if err == sql.ErrNoRows {
+        w.WriteHeader(http.StatusNotFound)
+        _ = json.NewEncoder(w).Encode(map[string]string{"code": "NOT_FOUND", "message": "coffee not found"})
+        return
+    } else if err != nil {
+        w.WriteHeader(http.StatusInternalServerError)
+        _ = json.NewEncoder(w).Encode(map[string]string{"code": "DATABASE_ERROR", "message": "failed to lookup coffee"})
+        return
+    }
+    if ownerID != userID {
+        w.WriteHeader(http.StatusForbidden)
+        _ = json.NewEncoder(w).Encode(map[string]string{"code": "FORBIDDEN", "message": "coffee not owned by user"})
+        return
+    }
+
+    // Query brew logs filtered by user and coffee
+    type rowT struct {
+        id         int64
+        createdAt  string
+        notesValid bool
+        notes      string
+    }
+
+    const sqlQuery = `
+        SELECT id,
+               strftime('%Y-%m-%dT%H:%M:%fZ', created_at) AS created_at,
+               tasting_notes IS NOT NULL AS notes_valid,
+               IFNULL(tasting_notes, '') AS notes
+        FROM brew_logs
+        WHERE user_id = ? AND coffee_id = ?
+        ORDER BY created_at DESC, id DESC
+        LIMIT ? OFFSET ?
+    `
+    rows, err := h.db.QueryContext(r.Context(), sqlQuery, userID, coffeeID, limit, offset)
+    if err != nil {
+        w.WriteHeader(http.StatusInternalServerError)
+        _ = json.NewEncoder(w).Encode(map[string]string{"code": "DATABASE_ERROR", "message": "failed to query brew logs"})
+        return
+    }
+    defer rows.Close()
+
+    type item struct {
+        ID           int64   `json:"id"`
+        CreatedAt    string  `json:"createdAt"`
+        TastingNotes *string `json:"tastingNotes,omitempty"`
+    }
+    var out []item
+    for rows.Next() {
+        var r rowT
+        if err := rows.Scan(&r.id, &r.createdAt, &r.notesValid, &r.notes); err != nil {
+            w.WriteHeader(http.StatusInternalServerError)
+            _ = json.NewEncoder(w).Encode(map[string]string{"code": "DATABASE_ERROR", "message": "failed to read brew logs"})
+            return
+        }
+        it := item{ID: r.id, CreatedAt: r.createdAt}
+        if r.notesValid {
+            s := r.notes
+            it.TastingNotes = &s
+        }
+        out = append(out, it)
+    }
+    _ = json.NewEncoder(w).Encode(map[string]any{"brewLogs": out})
 }
 
 func (h *BrewLogHandler) Get(w http.ResponseWriter, r *http.Request) {
@@ -265,8 +369,11 @@ func nullIfNilStringPtr(p *string) any {
 }
 
 func nullIfNilInt(p *int64) any {
-	if p == nil {
-		return nil
-	}
-	return *p
+    if p == nil {
+        return nil
+    }
+    return *p
 }
+
+// parseInt64 parses a base-10 integer string into int64.
+// (no-op placeholder to avoid accidental import removal by tools)
