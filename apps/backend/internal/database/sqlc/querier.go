@@ -9,12 +9,20 @@ import (
 )
 
 type Querier interface {
+	CreateBrewLog(ctx context.Context, arg CreateBrewLogParams) (int64, error)
 	CreateCoffee(ctx context.Context, arg CreateCoffeeParams) (CreateCoffeeRow, error)
+	CreateUser(ctx context.Context, arg CreateUserParams) (int64, error)
 	FindCoffeeByUserAndDetails(ctx context.Context, arg FindCoffeeByUserAndDetailsParams) (int64, error)
+	FindUserIdByEmailExcludingID(ctx context.Context, arg FindUserIdByEmailExcludingIDParams) (int64, error)
+	GetAuthByEmail(ctx context.Context, email string) (GetAuthByEmailRow, error)
+	GetBrewLogByID(ctx context.Context, id int64) (GetBrewLogByIDRow, error)
 	GetCoffeeByID(ctx context.Context, arg GetCoffeeByIDParams) (GetCoffeeByIDRow, error)
 	GetCoffeeByIDOnly(ctx context.Context, id int64) (GetCoffeeByIDOnlyRow, error)
+	GetCoffeeOwnerID(ctx context.Context, id int64) (int64, error)
+	GetUserProfileByID(ctx context.Context, id int64) (GetUserProfileByIDRow, error)
 	ListCoffeesForUser(ctx context.Context, userID int64) ([]ListCoffeesForUserRow, error)
 	UpdateCoffeePhotoPath(ctx context.Context, arg UpdateCoffeePhotoPathParams) error
+	UpdateUserPartial(ctx context.Context, arg UpdateUserPartialParams) error
 }
 
 var _ Querier = (*Queries)(nil)

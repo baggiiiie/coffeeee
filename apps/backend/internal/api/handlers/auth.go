@@ -2,6 +2,8 @@ package handlers
 
 import (
 	"coffeeee/backend/internal/config"
+	"coffeeee/backend/internal/database"
+	db "coffeeee/backend/internal/database/sqlc"
 	"coffeeee/backend/internal/utils"
 	"database/sql"
 	"encoding/json"
@@ -63,13 +65,9 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Query user by email
-	var userID int64
-	var username, passwordHash, passwordSalt string
-	err := h.db.QueryRow(
-		`SELECT id, username, password_hash, password_salt FROM users WHERE email = ?`,
-		email,
-	).Scan(&userID, &username, &passwordHash, &passwordSalt)
+	// Query user by email via sqlc
+	queries := database.NewQueries(h.db)
+	authRow, err := queries.GetAuthByEmail(r.Context(), email)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			http.Error(w, "invalid email or password", http.StatusUnauthorized)
@@ -78,6 +76,10 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "database error", http.StatusInternalServerError)
 		return
 	}
+	userID := authRow.ID
+	username := authRow.Username
+	passwordHash := authRow.PasswordHash
+	passwordSalt := authRow.PasswordSalt
 
 	// Verify password
 	if !utils.VerifyPassword(password, passwordSalt, passwordHash) {
@@ -155,10 +157,14 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	// For now, use email as username to satisfy NOT NULL UNIQUE
 	username := email
 
-	res, err := h.db.Exec(
-		`INSERT INTO users (username, email, password_hash, password_salt) VALUES (?, ?, ?, ?)`,
-		username, email, hash, salt,
-	)
+	queries := database.NewQueries(h.db)
+	var newID int64
+	newID, err = queries.CreateUser(r.Context(), db.CreateUserParams{
+		Username:     username,
+		Email:        email,
+		PasswordHash: hash,
+		PasswordSalt: salt,
+	})
 	if err != nil {
 		var sqlErr sqlite3.Error
 		// NOTE: This if condition is doing:
@@ -177,7 +183,7 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, errMsg, http.StatusInternalServerError)
 		return
 	}
-	id, _ := res.LastInsertId()
+	id := newID
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
