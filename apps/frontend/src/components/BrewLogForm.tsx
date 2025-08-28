@@ -218,7 +218,13 @@ const BrewLogForm: React.FC<BrewLogFormProps> = ({
 
             if (effectiveMode === 'create') {
                 payload.coffeeId = selectedCoffeeId
-                await api.post('/api/v1/brewlogs', payload)
+                const res = await api.post('/api/v1/brewlogs', payload)
+                const newId = res?.data?.id
+                if (newId) {
+                    navigate(`/brew-logs/${newId}`)
+                    return
+                }
+                // Fallback: show success if id missing, but stay
                 setToast({ open: true, message: 'Brew log saved', severity: 'success' })
                 setShowRecoCTA(true)
             } else {

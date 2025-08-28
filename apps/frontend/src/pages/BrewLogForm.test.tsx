@@ -1,6 +1,7 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import BrewLogForm from './BrewLogForm'
+import BrewLogDetailPage from './BrewLogDetailPage'
 import api from '../utils/api'
 
 vi.mock('../utils/api', async () => {
@@ -30,14 +31,17 @@ describe('BrewLogForm', () => {
         await waitFor(() => expect((screen.getByTestId('tasting-notes') as HTMLInputElement).value).toContain('Floral'))
         postSpy.mockRestore(); getSpy.mockRestore()
     })
-    it('shows next-time recommendation CTA after successful save', async () => {
+    it('navigates to newly saved brew log detail after save', async () => {
         // Selected coffee lookup when coffeeId is present in URL
-        const getSpy = vi.spyOn(api, 'get').mockResolvedValueOnce({ data: { coffee: { name: 'Some Coffee' } } })
+        const getSpy = vi.spyOn(api, 'get')
+            .mockResolvedValueOnce({ data: { coffee: { name: 'Some Coffee' } } }) // coffee name for create page
+            .mockResolvedValueOnce({ data: { id: 1, userId: 1, coffeeId: 42, brewMethod: 'V60', createdAt: '2024-08-02T10:00:00Z' } }) // detail fetch after redirect
         const postSpy = vi.spyOn(api, 'post').mockResolvedValueOnce({ data: { id: 1 } })
         render(
             <MemoryRouter initialEntries={["/brew-logs/new?coffeeId=42"]}>
                 <Routes>
                     <Route path="/brew-logs/new" element={<BrewLogForm />} />
+                    <Route path="/brew-logs/:id" element={<BrewLogDetailPage />} />
                 </Routes>
             </MemoryRouter>
         )
@@ -55,8 +59,9 @@ describe('BrewLogForm', () => {
 
         fireEvent.click(submit)
         await waitFor(() => expect(postSpy).toHaveBeenCalledWith('/api/v1/brewlogs', expect.objectContaining({ coffeeId: 42, brewMethod: 'V60' })))
-        await waitFor(() => expect(screen.getByTestId('next-reco-cta')).toBeInTheDocument())
-        postSpy.mockRestore(); getSpy.mockRestore()
+        // After redirect, detail page should render
+        expect(await screen.findByTestId('brewlog-detail')).toBeInTheDocument()
+        getSpy.mockRestore(); postSpy.mockRestore()
     })
 
     it('prefills fields from router state and allows reset', async () => {
@@ -118,16 +123,18 @@ describe('BrewLogForm', () => {
         expect(await screen.findByText(/only log brews for your own coffees/i)).toBeInTheDocument()
         getSpy.mockRestore(); postSpy.mockRestore()
     })
-    it('opens recommendation dialog, submits goal, and renders result', async () => {
-        // First call is saving brewlog; second call is AI recommendation
-        const postSpy = vi.spyOn(api, 'post')
-            .mockResolvedValueOnce({ data: { id: 1 } })
-            .mockResolvedValueOnce({ data: { change: { variable: 'grind', delta: '2 clicks finer' }, explanation: 'Increase extraction for sweetness' } })
+    it('after save, opens recommendation on detail page and renders result', async () => {
+        // First call is saving brewlog; then detail GET; then AI recommendation POST via useAI
+        const postSpy = vi.spyOn(api, 'post').mockResolvedValueOnce({ data: { id: 1 } })
+        const getSpy = vi.spyOn(api, 'get')
+            .mockResolvedValueOnce({ data: { coffee: { name: 'Some Coffee' } } }) // coffee name for create page
+            .mockResolvedValueOnce({ data: { id: 1, userId: 1, coffeeId: 42, brewMethod: 'V60', createdAt: '2024-08-02T10:00:00Z' } }) // detail fetch after redirect
 
         render(
             <MemoryRouter initialEntries={["/brew-logs/new?coffeeId=42"]}>
                 <Routes>
                     <Route path="/brew-logs/new" element={<BrewLogForm />} />
+                    <Route path="/brew-logs/:id" element={<BrewLogDetailPage />} />
                 </Routes>
             </MemoryRouter>
         )
@@ -136,9 +143,14 @@ describe('BrewLogForm', () => {
         fireEvent.click(screen.getByTestId('submit-brewlog'))
         await waitFor(() => expect(postSpy).toHaveBeenCalledWith('/api/v1/brewlogs', expect.anything()))
 
-        // Open dialog from CTA
-        fireEvent.click(screen.getByRole('button', { name: /get a recommendation for next time/i }))
+        // On detail page now; open AI recommendation there
+        const aiButton = await screen.findByTestId('ai-recommendation')
+        fireEvent.click(aiButton)
         expect(await screen.findByTestId('reco-dialog')).toBeInTheDocument()
+
+        // Mock AI recommendation network call through useAI hook
+        // useAI likely posts to /api/v1/ai/brew-recommendation; mock next post
+        postSpy.mockResolvedValueOnce({ data: { change: { variable: 'grind', delta: '2 clicks finer' }, explanation: 'Increase extraction for sweetness' } })
 
         fireEvent.change(screen.getByTestId('reco-goal'), { target: { value: 'more sweetness' } })
         fireEvent.click(screen.getByTestId('reco-submit'))
@@ -146,6 +158,6 @@ describe('BrewLogForm', () => {
         await waitFor(() => expect(screen.getByTestId('reco-result')).toBeInTheDocument())
         expect(screen.getByText(/2 clicks finer/i)).toBeInTheDocument()
 
-        postSpy.mockRestore()
+        postSpy.mockRestore(); getSpy.mockRestore()
     })
 })
