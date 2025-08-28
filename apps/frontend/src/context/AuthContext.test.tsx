@@ -1,5 +1,5 @@
 import React from 'react'
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, act } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { describe, it, beforeEach, vi, expect } from 'vitest'
 import { AuthProvider, useAuth } from './AuthContext'
@@ -38,6 +38,15 @@ describe('AuthContext', () => {
         localStorageMock.getItem.mockReset()
         localStorageMock.setItem.mockReset()
         localStorageMock.removeItem.mockReset()
+    })
+
+    afterEach(async () => {
+        // Flush any pending UI timers (e.g., Snackbar auto-hide) to avoid act() warnings
+        vi.useFakeTimers()
+        await act(async () => {
+            vi.runAllTimers()
+        })
+        vi.useRealTimers()
     })
 
     it('should hydrate user data when token exists in localStorage', async () => {
@@ -152,7 +161,7 @@ describe('AuthContext', () => {
                 </AuthProvider>
             </MemoryRouter>
         )
-        
+
         await waitFor(() => {
             expect(screen.getByTestId('is-authenticated')).toHaveTextContent('true')
         })

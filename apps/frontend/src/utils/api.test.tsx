@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, act } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import App from '../App'
 import api from './api'
@@ -30,11 +30,13 @@ describe('Axios 401 auto-logout interceptor', () => {
         )
 
         // Trigger any request; interceptor should catch 401 and emit logout event
-        try {
-            await api.get('/test')
-        } catch (_) {
-            // ignore
-        }
+        await act(async () => {
+            try {
+                await api.get('/test')
+            } catch (_) {
+                // ignore
+            }
+        })
 
         await waitFor(async () => {
             expect(localStorage.getItem('authToken')).toBeNull()

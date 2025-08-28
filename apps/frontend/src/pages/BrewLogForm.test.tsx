@@ -10,7 +10,9 @@ vi.mock('../utils/api', async () => {
 
 describe('BrewLogForm', () => {
     it('opens AI guide and injects tasting notes on finish', async () => {
-        const postSpy = vi.spyOn(api, 'post').mockResolvedValueOnce({ data: { questionId: 'q1', text: 'Pick aroma', options: [ { label: 'Floral', value: 'floral' } ] } })
+        // Selected coffee lookup when coffeeId is present in URL
+        const getSpy = vi.spyOn(api, 'get').mockResolvedValueOnce({ data: { coffee: { name: 'Some Coffee' } } })
+        const postSpy = vi.spyOn(api, 'post').mockResolvedValueOnce({ data: { questionId: 'q1', text: 'Pick aroma', options: [{ label: 'Floral', value: 'floral' }] } })
         render(
             <MemoryRouter initialEntries={["/brew-logs/new?coffeeId=42"]}>
                 <Routes>
@@ -26,9 +28,11 @@ describe('BrewLogForm', () => {
         fireEvent.click(screen.getAllByTestId('ai-option')[0])
         fireEvent.click(screen.getByTestId('ai-finish'))
         await waitFor(() => expect((screen.getByTestId('tasting-notes') as HTMLInputElement).value).toContain('Floral'))
-        postSpy.mockRestore()
+        postSpy.mockRestore(); getSpy.mockRestore()
     })
     it('shows next-time recommendation CTA after successful save', async () => {
+        // Selected coffee lookup when coffeeId is present in URL
+        const getSpy = vi.spyOn(api, 'get').mockResolvedValueOnce({ data: { coffee: { name: 'Some Coffee' } } })
         const postSpy = vi.spyOn(api, 'post').mockResolvedValueOnce({ data: { id: 1 } })
         render(
             <MemoryRouter initialEntries={["/brew-logs/new?coffeeId=42"]}>
@@ -52,7 +56,7 @@ describe('BrewLogForm', () => {
         fireEvent.click(submit)
         await waitFor(() => expect(postSpy).toHaveBeenCalledWith('/api/v1/brewlogs', expect.objectContaining({ coffeeId: 42, brewMethod: 'V60' })))
         await waitFor(() => expect(screen.getByTestId('next-reco-cta')).toBeInTheDocument())
-        postSpy.mockRestore()
+        postSpy.mockRestore(); getSpy.mockRestore()
     })
 
     it('prefills fields from router state and allows reset', async () => {
@@ -76,7 +80,7 @@ describe('BrewLogForm', () => {
     })
 
     it('requires selecting a coffee if none provided and blocks submit until chosen', async () => {
-        const getSpy = vi.spyOn(api, 'get').mockResolvedValueOnce({ data: { coffees: [ { id: 7, name: 'Ethiopia Yirgacheffe' } ] } })
+        const getSpy = vi.spyOn(api, 'get').mockResolvedValueOnce({ data: { coffees: [{ id: 7, name: 'Ethiopia Yirgacheffe' }] } })
         render(
             <MemoryRouter initialEntries={["/brew-logs/new"]}>
                 <Routes>
@@ -96,7 +100,7 @@ describe('BrewLogForm', () => {
     })
 
     it('shows a friendly error when backend returns 403 for unauthorized coffee', async () => {
-        const getSpy = vi.spyOn(api, 'get').mockResolvedValueOnce({ data: { coffees: [ { id: 9, name: 'Kenya AA' } ] } })
+        const getSpy = vi.spyOn(api, 'get').mockResolvedValueOnce({ data: { coffees: [{ id: 9, name: 'Kenya AA' }] } })
         const postSpy = vi.spyOn(api, 'post').mockRejectedValueOnce({ response: { status: 403 } })
         render(
             <MemoryRouter initialEntries={["/brew-logs/new"]}>

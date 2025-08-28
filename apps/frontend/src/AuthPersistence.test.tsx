@@ -1,7 +1,7 @@
 import React from 'react'
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, act } from '@testing-library/react'
 import App from './App'
 import { AuthProvider } from './context/AuthContext'
 import Dashboard from './pages/Dashboard'
@@ -71,8 +71,10 @@ describe('Auth Persistence & Token Expiry UX (Story 1.8)', () => {
     await waitFor(() => expect(screen.getByText('Dashboard')).toBeInTheDocument())
 
     // Dispatch two logout events quickly to simulate concurrent 401s
-    window.dispatchEvent(new CustomEvent('auth:logout', { detail: { reason: 'token-expired' } }))
-    window.dispatchEvent(new CustomEvent('auth:logout', { detail: { reason: 'token-expired' } }))
+    await act(async () => {
+      window.dispatchEvent(new CustomEvent('auth:logout', { detail: { reason: 'token-expired' } }))
+      window.dispatchEvent(new CustomEvent('auth:logout', { detail: { reason: 'token-expired' } }))
+    })
 
     await waitFor(() => expect(screen.getByRole('heading', { name: 'Login' })).toBeInTheDocument())
     // Only one toast should be present
@@ -101,7 +103,9 @@ describe('Auth Persistence & Token Expiry UX (Story 1.8)', () => {
     expect(screen.getByText(/loading/i)).toBeInTheDocument()
     // Clean up the pending promise to avoid unhandled rejection
     if (resolveFn) {
-      resolveFn({ data: TEST_USER })
+      await act(async () => {
+        resolveFn!({ data: TEST_USER })
+      })
     }
   })
 })
