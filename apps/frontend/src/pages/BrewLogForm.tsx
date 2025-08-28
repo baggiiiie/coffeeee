@@ -21,7 +21,8 @@ const BrewLogForm: React.FC = () => {
     const [waterWeight, setWaterWeight] = useState<string>('')
     const [grindSize, setGrindSize] = useState('')
     const [waterTemp, setWaterTemp] = useState<string>('')
-    const [brewTime, setBrewTime] = useState<string>('')
+    const [brewMin, setBrewMin] = useState<string>('')
+    const [brewSec, setBrewSec] = useState<string>('')
     const [tastingNotes, setTastingNotes] = useState('')
     const [rating, setRating] = useState<string>('')
     const [submitting, setSubmitting] = useState(false)
@@ -59,7 +60,13 @@ const BrewLogForm: React.FC = () => {
             if (initialBrewParams.waterWeight != null) setWaterWeight(String(initialBrewParams.waterWeight))
             if (initialBrewParams.grindSize) setGrindSize(String(initialBrewParams.grindSize))
             if (initialBrewParams.waterTemperature != null) setWaterTemp(String(initialBrewParams.waterTemperature))
-            if (initialBrewParams.brewTime != null) setBrewTime(String(initialBrewParams.brewTime))
+            if (initialBrewParams.brewTime != null) {
+                const total = Number(initialBrewParams.brewTime) || 0
+                const m = Math.floor(total / 60)
+                const s = total % 60
+                setBrewMin(String(m))
+                setBrewSec(String(s))
+            }
             setTimeout(() => headingRef.current?.focus(), 0)
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -74,14 +81,24 @@ const BrewLogForm: React.FC = () => {
         return (ww / cw).toFixed(1)
     }, [coffeeWeight, waterWeight])
 
+    const totalBrewSeconds = useMemo(() => {
+        if (brewMin === '' && brewSec === '') return null
+        const m = brewMin === '' ? 0 : parseInt(brewMin, 10)
+        const s = brewSec === '' ? 0 : parseInt(brewSec, 10)
+        if (isNaN(m) || isNaN(s)) return null
+        return m * 60 + s
+    }, [brewMin, brewSec])
+
     const boundsValid = () => {
-        const cw = coffeeWeight === '' ? null : parseFloat(coffeeWeight)
+        const cw = coffeeWeight === '' ? null : parseInt(coffeeWeight, 10)
         if (cw !== null && (isNaN(cw) || cw < 0 || cw > 200)) return false
-        const ww = waterWeight === '' ? null : parseFloat(waterWeight)
+        const ww = waterWeight === '' ? null : parseInt(waterWeight, 10)
         if (ww !== null && (isNaN(ww) || ww < 0 || ww > 3000)) return false
-        const wt = waterTemp === '' ? null : parseFloat(waterTemp)
+        const wt = waterTemp === '' ? null : parseInt(waterTemp, 10)
         if (wt !== null && (isNaN(wt) || wt < 0 || wt > 100)) return false
-        const bt = brewTime === '' ? null : parseInt(brewTime, 10)
+        if (brewSec !== '' && (isNaN(parseInt(brewSec, 10)) || parseInt(brewSec, 10) < 0 || parseInt(brewSec, 10) > 59)) return false
+        if (brewMin !== '' && (isNaN(parseInt(brewMin, 10)) || parseInt(brewMin, 10) < 0 || parseInt(brewMin, 10) > 60)) return false
+        const bt = totalBrewSeconds
         if (bt !== null && (isNaN(bt) || bt < 0 || bt > 3600)) return false
         const r = rating === '' ? null : parseInt(rating, 10)
         if (r !== null && (isNaN(r) || r < 1 || r > 5)) return false
@@ -96,11 +113,11 @@ const BrewLogForm: React.FC = () => {
         setSubmitting(true)
         try {
             const payload: any = { coffeeId: selectedCoffeeId, brewMethod: brewMethod.trim() }
-            if (coffeeWeight.trim() !== '') payload.coffeeWeight = parseFloat(coffeeWeight)
-            if (waterWeight.trim() !== '') payload.waterWeight = parseFloat(waterWeight)
+            if (coffeeWeight.trim() !== '') payload.coffeeWeight = parseInt(coffeeWeight, 10)
+            if (waterWeight.trim() !== '') payload.waterWeight = parseInt(waterWeight, 10)
             if (grindSize.trim() !== '') payload.grindSize = grindSize.trim()
-            if (waterTemp.trim() !== '') payload.waterTemperature = parseFloat(waterTemp)
-            if (brewTime.trim() !== '') payload.brewTime = parseInt(brewTime, 10)
+            if (waterTemp.trim() !== '') payload.waterTemperature = parseInt(waterTemp, 10)
+            if (totalBrewSeconds !== null) payload.brewTime = totalBrewSeconds
             if (tastingNotes.trim() !== '') payload.tastingNotes = tastingNotes.trim()
             if (rating.trim() !== '') payload.rating = parseInt(rating, 10)
             await api.post('/api/v1/brewlogs', payload)
@@ -138,7 +155,16 @@ const BrewLogForm: React.FC = () => {
                                     setWaterWeight(initialBrewParams.waterWeight != null ? String(initialBrewParams.waterWeight) : '')
                                     setGrindSize(initialBrewParams.grindSize || '')
                                     setWaterTemp(initialBrewParams.waterTemperature != null ? String(initialBrewParams.waterTemperature) : '')
-                                    setBrewTime(initialBrewParams.brewTime != null ? String(initialBrewParams.brewTime) : '')
+                                    const total = initialBrewParams.brewTime != null ? Number(initialBrewParams.brewTime) : null
+                                    if (total !== null && !isNaN(total)) {
+                                        const m = Math.floor(total / 60)
+                                        const s = total % 60
+                                        setBrewMin(String(m))
+                                        setBrewSec(String(s))
+                                    } else {
+                                        setBrewMin('')
+                                        setBrewSec('')
+                                    }
                                 }
                             }}>Reset to defaults</Button>}>
                             {prefillNote}
@@ -177,14 +203,57 @@ const BrewLogForm: React.FC = () => {
                                 fullWidth
                             />
                             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-                                <TextField label="Coffee (g)" value={coffeeWeight} onChange={(e) => setCoffeeWeight(e.target.value)} inputProps={{ inputMode: 'decimal', 'data-testid': 'coffee-weight' }} fullWidth />
-                                <TextField label="Water (g)" value={waterWeight} onChange={(e) => setWaterWeight(e.target.value)} inputProps={{ inputMode: 'decimal', 'data-testid': 'water-weight' }} fullWidth />
+                                <TextField
+                                    label="Coffee (g)"
+                                    value={coffeeWeight}
+                                    onChange={(e) => setCoffeeWeight(e.target.value.replace(/\D+/g, ''))}
+                                    inputProps={{ inputMode: 'numeric', pattern: '[0-9]*', 'data-testid': 'coffee-weight' }}
+                                    fullWidth
+                                />
+                                <TextField
+                                    label="Water (g)"
+                                    value={waterWeight}
+                                    onChange={(e) => setWaterWeight(e.target.value.replace(/\D+/g, ''))}
+                                    inputProps={{ inputMode: 'numeric', pattern: '[0-9]*', 'data-testid': 'water-weight' }}
+                                    fullWidth
+                                />
                                 <TextField label="Ratio" value={ratio} disabled fullWidth />
                             </Stack>
                             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-                                <TextField label="Grind Size (Clicks)" value={grindSize} onChange={(e) => setGrindSize(e.target.value)} inputProps={{ 'data-testid': 'grind-size' }} fullWidth />
-                                <TextField label="Water Temp (°C)" value={waterTemp} onChange={(e) => setWaterTemp(e.target.value)} inputProps={{ inputMode: 'decimal', 'data-testid': 'water-temp' }} fullWidth />
-                                <TextField label="Brew Time (s)" value={brewTime} onChange={(e) => setBrewTime(e.target.value)} inputProps={{ inputMode: 'numeric', 'data-testid': 'brew-time' }} fullWidth />
+                                <TextField
+                                    label="Grind Size (Clicks)"
+                                    value={grindSize}
+                                    onChange={(e) => setGrindSize(e.target.value.replace(/\D+/g, ''))}
+                                    inputProps={{ inputMode: 'numeric', pattern: '[0-9]*', 'data-testid': 'grind-size' }}
+                                    fullWidth
+                                />
+                                <TextField
+                                    label="Water Temp (°C)"
+                                    value={waterTemp}
+                                    onChange={(e) => setWaterTemp(e.target.value.replace(/\D+/g, ''))}
+                                    inputProps={{ inputMode: 'numeric', pattern: '[0-9]*', 'data-testid': 'water-temp' }}
+                                    fullWidth
+                                />
+                                <Stack direction={{ xs: 'row' }} spacing={2} sx={{ width: '100%' }}>
+                                    <TextField
+                                        label="Brew Time (min)"
+                                        value={brewMin}
+                                        onChange={(e) => setBrewMin(e.target.value.replace(/\D+/g, ''))}
+                                        inputProps={{ inputMode: 'numeric', pattern: '[0-9]*', 'data-testid': 'brew-minutes' }}
+                                        fullWidth
+                                    />
+                                    <TextField
+                                        label="Brew Time (sec)"
+                                        value={brewSec}
+                                        onChange={(e) => {
+                                            const v = e.target.value.replace(/\D+/g, '')
+                                            const n = v === '' ? '' : String(Math.min(59, parseInt(v, 10)))
+                                            setBrewSec(n)
+                                        }}
+                                        inputProps={{ inputMode: 'numeric', pattern: '[0-9]*', 'data-testid': 'brew-seconds' }}
+                                        fullWidth
+                                    />
+                                </Stack>
                             </Stack>
                             <TextField label="Tasting Notes" value={tastingNotes} onChange={(e) => setTastingNotes(e.target.value)} inputProps={{ 'data-testid': 'tasting-notes' }} fullWidth multiline minRows={3} />
                             <Stack direction="row" spacing={2}>
@@ -216,11 +285,11 @@ const BrewLogForm: React.FC = () => {
                 brewLog={{
                     coffeeId,
                     brewMethod: brewMethod || undefined,
-                    coffeeWeight: coffeeWeight ? parseFloat(coffeeWeight) : undefined,
-                    waterWeight: waterWeight ? parseFloat(waterWeight) : undefined,
+                    coffeeWeight: coffeeWeight ? parseInt(coffeeWeight, 10) : undefined,
+                    waterWeight: waterWeight ? parseInt(waterWeight, 10) : undefined,
                     grindSize: grindSize || undefined,
-                    waterTemperature: waterTemp ? parseFloat(waterTemp) : undefined,
-                    brewTime: brewTime ? parseInt(brewTime, 10) : undefined,
+                    waterTemperature: waterTemp ? parseInt(waterTemp, 10) : undefined,
+                    brewTime: totalBrewSeconds ?? undefined,
                     tastingNotes: tastingNotes || undefined,
                     rating: rating ? parseInt(rating, 10) : undefined,
                 }}

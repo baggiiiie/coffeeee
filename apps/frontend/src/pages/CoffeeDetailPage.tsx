@@ -78,8 +78,15 @@ const BrewLogList: React.FC<{ coffeeId: number }> = ({ coffeeId }) => {
         )
     }
 
-    const formatDate = (iso: string) => {
-        try { return new Date(iso).toLocaleDateString() } catch { return iso }
+    const formatDateTime = (iso: string) => {
+        try {
+            const d = new Date(iso)
+            const date = d.toLocaleDateString()
+            const time = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            return `${date}, ${time}`
+        } catch {
+            return iso
+        }
     }
 
     const params = (cw?: number, ww?: number, rating?: number) => {
@@ -110,7 +117,7 @@ const BrewLogList: React.FC<{ coffeeId: number }> = ({ coffeeId }) => {
                         onClick={() => navigate(`/brew-logs/${it.id}`)}
                     >
                         <ListItemText
-                            primary={`${formatDate(it.createdAt)} — ${it.brewMethod}`}
+                            primary={`${formatDateTime(it.createdAt)} - ${it.brewMethod}`}
                             secondary={[params(it.coffeeWeight, it.waterWeight, it.rating), summarize(it.tastingNotes)].filter(Boolean).join(' • ')}
                         />
                     </ListItemButton>
