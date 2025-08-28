@@ -25,7 +25,7 @@ const BrewLogForm: React.FC = () => {
     const [tastingNotes, setTastingNotes] = useState('')
     const [rating, setRating] = useState<string>('')
     const [submitting, setSubmitting] = useState(false)
-    const [toast, setToast] = useState<{open: boolean; message: string; severity: 'success' | 'error'}>({ open: false, message: '', severity: 'success' })
+    const [toast, setToast] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({ open: false, message: '', severity: 'success' })
     const [aiOpen, setAiOpen] = useState(false)
     const [recoOpen, setRecoOpen] = useState(false)
     const [showRecoCTA, setShowRecoCTA] = useState(false)
@@ -50,7 +50,6 @@ const BrewLogForm: React.FC = () => {
     const headingRef = useRef<HTMLHeadingElement>(null)
 
     const initialBrewParams = location?.state?.initialBrewParams as any | undefined
-    const fromGuideTitle = location?.state?.fromGuideTitle as string | undefined
 
     useEffect(() => {
         // Apply prefill once on mount
@@ -61,7 +60,6 @@ const BrewLogForm: React.FC = () => {
             if (initialBrewParams.grindSize) setGrindSize(String(initialBrewParams.grindSize))
             if (initialBrewParams.waterTemperature != null) setWaterTemp(String(initialBrewParams.waterTemperature))
             if (initialBrewParams.brewTime != null) setBrewTime(String(initialBrewParams.brewTime))
-            setPrefillNote(fromGuideTitle ? `Prefilled from ${fromGuideTitle} — you can edit any field.` : 'Prefilled — you can edit any field.')
             setTimeout(() => headingRef.current?.focus(), 0)
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -119,119 +117,119 @@ const BrewLogForm: React.FC = () => {
 
     return (
         <>
-        <Box sx={{ py: 4 }}>
-            <Typography variant="h4" gutterBottom tabIndex={-1} ref={headingRef}>
-                Log New Brew
-            </Typography>
-            <Paper sx={{ p: 3 }}>
-                {showRecoCTA && (
-                    <MuiAlert severity="info" sx={{ mb: 2 }} data-testid="next-reco-cta"
-                        action={<Button variant="outlined" size="small" onClick={() => setRecoOpen(true)}>Get a recommendation for next time</Button>}>
-                        Brew saved. Want guidance for your next brew?
-                        <Button size="small" onClick={() => setShowRecoCTA(false)} sx={{ ml: 1 }}>Dismiss</Button>
-                    </MuiAlert>
-                )}
-                {prefillNote && (
-                    <MuiAlert severity="info" sx={{ mb: 2 }} data-testid="prefill-note"
-                        action={<Button variant="outlined" size="small" onClick={() => {
-                            if (initialBrewParams) {
-                                setBrewMethod(initialBrewParams.brewMethod || '')
-                                setCoffeeWeight(initialBrewParams.coffeeWeight != null ? String(initialBrewParams.coffeeWeight) : '')
-                                setWaterWeight(initialBrewParams.waterWeight != null ? String(initialBrewParams.waterWeight) : '')
-                                setGrindSize(initialBrewParams.grindSize || '')
-                                setWaterTemp(initialBrewParams.waterTemperature != null ? String(initialBrewParams.waterTemperature) : '')
-                                setBrewTime(initialBrewParams.brewTime != null ? String(initialBrewParams.brewTime) : '')
-                            }
-                        }}>Reset to defaults</Button>}>
-                        {prefillNote}
-                    </MuiAlert>
-                )}
-                <Box component="form" onSubmit={onSubmit} noValidate>
-                    <Stack spacing={2}>
-                        {selectedCoffeeId > 0 ? (
-                            <TextField label="Coffee" value={selectedCoffeeName || 'unknown coffee'} disabled fullWidth data-testid="coffee-id" />
-                        ) : (
-                            <FormControl fullWidth>
-                                <InputLabel id="coffee-select-label">Select Coffee</InputLabel>
-                                <Select
-                                    labelId="coffee-select-label"
-                                    label="Select Coffee"
-                                    value={selectedCoffeeId || ''}
-                                    onChange={(e) => setSelectedCoffeeId(Number(e.target.value))}
-                                    displayEmpty
-                                    inputProps={{ 'data-testid': 'coffee-select' }}
-                                >
-                                    <MenuItem value="" disabled>
-                                        <em>Select a coffee</em>
-                                    </MenuItem>
-                                    {coffees.map((c) => (
-                                        <MenuItem key={c.id} value={c.id}>{c.name}</MenuItem>
-                                    ))}
-                                </Select>
-                            </FormControl>
-                        )}
-                        <TextField
-                            label="Brew Method"
-                            value={brewMethod}
-                            onChange={(e) => setBrewMethod(e.target.value)}
-                            required
-                            inputProps={{ 'data-testid': 'brew-method' }}
-                            fullWidth
-                        />
-                        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-                            <TextField label="Coffee (g)" value={coffeeWeight} onChange={(e) => setCoffeeWeight(e.target.value)} inputProps={{ inputMode: 'decimal', 'data-testid': 'coffee-weight' }} fullWidth />
-                            <TextField label="Water (g)" value={waterWeight} onChange={(e) => setWaterWeight(e.target.value)} inputProps={{ inputMode: 'decimal', 'data-testid': 'water-weight' }} fullWidth />
-                            <TextField label="Ratio" value={ratio} disabled fullWidth />
+            <Box sx={{ py: 4 }}>
+                <Typography variant="h4" gutterBottom tabIndex={-1} ref={headingRef}>
+                    Log New Brew
+                </Typography>
+                <Paper sx={{ p: 3 }}>
+                    {showRecoCTA && (
+                        <MuiAlert severity="info" sx={{ mb: 2 }} data-testid="next-reco-cta"
+                            action={<Button variant="outlined" size="small" onClick={() => setRecoOpen(true)}>Get a recommendation for next time</Button>}>
+                            Brew saved. Want guidance for your next brew?
+                            <Button size="small" onClick={() => setShowRecoCTA(false)} sx={{ ml: 1 }}>Dismiss</Button>
+                        </MuiAlert>
+                    )}
+                    {prefillNote && (
+                        <MuiAlert severity="info" sx={{ mb: 2 }} data-testid="prefill-note"
+                            action={<Button variant="outlined" size="small" onClick={() => {
+                                if (initialBrewParams) {
+                                    setBrewMethod(initialBrewParams.brewMethod || '')
+                                    setCoffeeWeight(initialBrewParams.coffeeWeight != null ? String(initialBrewParams.coffeeWeight) : '')
+                                    setWaterWeight(initialBrewParams.waterWeight != null ? String(initialBrewParams.waterWeight) : '')
+                                    setGrindSize(initialBrewParams.grindSize || '')
+                                    setWaterTemp(initialBrewParams.waterTemperature != null ? String(initialBrewParams.waterTemperature) : '')
+                                    setBrewTime(initialBrewParams.brewTime != null ? String(initialBrewParams.brewTime) : '')
+                                }
+                            }}>Reset to defaults</Button>}>
+                            {prefillNote}
+                        </MuiAlert>
+                    )}
+                    <Box component="form" onSubmit={onSubmit} noValidate>
+                        <Stack spacing={2}>
+                            {selectedCoffeeId > 0 ? (
+                                <TextField label="Coffee" value={selectedCoffeeName || 'unknown coffee'} disabled fullWidth data-testid="coffee-id" />
+                            ) : (
+                                <FormControl fullWidth>
+                                    <InputLabel id="coffee-select-label">Select Coffee</InputLabel>
+                                    <Select
+                                        labelId="coffee-select-label"
+                                        label="Select Coffee"
+                                        value={selectedCoffeeId || ''}
+                                        onChange={(e) => setSelectedCoffeeId(Number(e.target.value))}
+                                        displayEmpty
+                                        inputProps={{ 'data-testid': 'coffee-select' }}
+                                    >
+                                        <MenuItem value="" disabled>
+                                            <em>Select a coffee</em>
+                                        </MenuItem>
+                                        {coffees.map((c) => (
+                                            <MenuItem key={c.id} value={c.id}>{c.name}</MenuItem>
+                                        ))}
+                                    </Select>
+                                </FormControl>
+                            )}
+                            <TextField
+                                label="Brew Method"
+                                value={brewMethod}
+                                onChange={(e) => setBrewMethod(e.target.value)}
+                                required
+                                inputProps={{ 'data-testid': 'brew-method' }}
+                                fullWidth
+                            />
+                            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+                                <TextField label="Coffee (g)" value={coffeeWeight} onChange={(e) => setCoffeeWeight(e.target.value)} inputProps={{ inputMode: 'decimal', 'data-testid': 'coffee-weight' }} fullWidth />
+                                <TextField label="Water (g)" value={waterWeight} onChange={(e) => setWaterWeight(e.target.value)} inputProps={{ inputMode: 'decimal', 'data-testid': 'water-weight' }} fullWidth />
+                                <TextField label="Ratio" value={ratio} disabled fullWidth />
+                            </Stack>
+                            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+                                <TextField label="Grind Size (Clicks)" value={grindSize} onChange={(e) => setGrindSize(e.target.value)} inputProps={{ 'data-testid': 'grind-size' }} fullWidth />
+                                <TextField label="Water Temp (°C)" value={waterTemp} onChange={(e) => setWaterTemp(e.target.value)} inputProps={{ inputMode: 'decimal', 'data-testid': 'water-temp' }} fullWidth />
+                                <TextField label="Brew Time (s)" value={brewTime} onChange={(e) => setBrewTime(e.target.value)} inputProps={{ inputMode: 'numeric', 'data-testid': 'brew-time' }} fullWidth />
+                            </Stack>
+                            <TextField label="Tasting Notes" value={tastingNotes} onChange={(e) => setTastingNotes(e.target.value)} inputProps={{ 'data-testid': 'tasting-notes' }} fullWidth multiline minRows={3} />
+                            <Stack direction="row" spacing={2}>
+                                <Button variant="outlined" onClick={() => setAiOpen(true)} data-testid="open-ai-guide">AI Tasting Guide</Button>
+                            </Stack>
+                            <TextField label="Rating (1–5)" value={rating} onChange={(e) => setRating(e.target.value)} inputProps={{ inputMode: 'numeric', 'data-testid': 'rating' }} fullWidth />
+                            <Stack direction="row" spacing={2}>
+                                <Button type="submit" variant="contained" disabled={!canSubmit || submitting} data-testid="submit-brewlog">{submitting ? 'Saving…' : 'Save Brew Log'}</Button>
+                                <Button variant="outlined" color="secondary" onClick={() => navigate(-1)} data-testid="cancel-brewlog">Cancel</Button>
+                            </Stack>
                         </Stack>
-                        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-                            <TextField label="Grind Size (Clicks)" value={grindSize} onChange={(e) => setGrindSize(e.target.value)} inputProps={{ 'data-testid': 'grind-size' }} fullWidth />
-                            <TextField label="Water Temp (°C)" value={waterTemp} onChange={(e) => setWaterTemp(e.target.value)} inputProps={{ inputMode: 'decimal', 'data-testid': 'water-temp' }} fullWidth />
-                            <TextField label="Brew Time (s)" value={brewTime} onChange={(e) => setBrewTime(e.target.value)} inputProps={{ inputMode: 'numeric', 'data-testid': 'brew-time' }} fullWidth />
-                        </Stack>
-                        <TextField label="Tasting Notes" value={tastingNotes} onChange={(e) => setTastingNotes(e.target.value)} inputProps={{ 'data-testid': 'tasting-notes' }} fullWidth multiline minRows={3} />
-                        <Stack direction="row" spacing={2}>
-                            <Button variant="outlined" onClick={() => setAiOpen(true)} data-testid="open-ai-guide">AI Tasting Guide</Button>
-                        </Stack>
-                        <TextField label="Rating (1–5)" value={rating} onChange={(e) => setRating(e.target.value)} inputProps={{ inputMode: 'numeric', 'data-testid': 'rating' }} fullWidth />
-                        <Stack direction="row" spacing={2}>
-                            <Button type="submit" variant="contained" disabled={!canSubmit || submitting} data-testid="submit-brewlog">{submitting ? 'Saving…' : 'Save Brew Log'}</Button>
-                            <Button variant="outlined" color="secondary" onClick={() => navigate(-1)} data-testid="cancel-brewlog">Cancel</Button>
-                        </Stack>
-                    </Stack>
-                </Box>
-            </Paper>
-            <Snackbar open={toast.open} autoHideDuration={3000} onClose={() => setToast({ ...toast, open: false })}>
-                <Alert severity={toast.severity} onClose={() => setToast({ ...toast, open: false })}>{toast.message}</Alert>
-            </Snackbar>
-        </Box>
-        <AITastingAssistant
-            open={aiOpen}
-            brewMethod={brewMethod}
-            onClose={() => setAiOpen(false)}
-            onComplete={(notes) => {
-                setTastingNotes(notes)
-                setAiOpen(false)
-            }}
-        />
-        <AIBrewRecommendationDialog
-            open={recoOpen}
-            brewLog={{
-                coffeeId,
-                brewMethod: brewMethod || undefined,
-                coffeeWeight: coffeeWeight ? parseFloat(coffeeWeight) : undefined,
-                waterWeight: waterWeight ? parseFloat(waterWeight) : undefined,
-                grindSize: grindSize || undefined,
-                waterTemperature: waterTemp ? parseFloat(waterTemp) : undefined,
-                brewTime: brewTime ? parseInt(brewTime, 10) : undefined,
-                tastingNotes: tastingNotes || undefined,
-                rating: rating ? parseInt(rating, 10) : undefined,
-            }}
-            onClose={() => setRecoOpen(false)}
-            onApply={() => {
-                setToast({ open: true, message: 'Recommendation applied to draft brew', severity: 'success' })
-                setRecoOpen(false)
-            }}
-        />
+                    </Box>
+                </Paper>
+                <Snackbar open={toast.open} autoHideDuration={3000} onClose={() => setToast({ ...toast, open: false })}>
+                    <Alert severity={toast.severity} onClose={() => setToast({ ...toast, open: false })}>{toast.message}</Alert>
+                </Snackbar>
+            </Box>
+            <AITastingAssistant
+                open={aiOpen}
+                brewMethod={brewMethod}
+                onClose={() => setAiOpen(false)}
+                onComplete={(notes) => {
+                    setTastingNotes(notes)
+                    setAiOpen(false)
+                }}
+            />
+            <AIBrewRecommendationDialog
+                open={recoOpen}
+                brewLog={{
+                    coffeeId,
+                    brewMethod: brewMethod || undefined,
+                    coffeeWeight: coffeeWeight ? parseFloat(coffeeWeight) : undefined,
+                    waterWeight: waterWeight ? parseFloat(waterWeight) : undefined,
+                    grindSize: grindSize || undefined,
+                    waterTemperature: waterTemp ? parseFloat(waterTemp) : undefined,
+                    brewTime: brewTime ? parseInt(brewTime, 10) : undefined,
+                    tastingNotes: tastingNotes || undefined,
+                    rating: rating ? parseInt(rating, 10) : undefined,
+                }}
+                onClose={() => setRecoOpen(false)}
+                onApply={() => {
+                    setToast({ open: true, message: 'Recommendation applied to draft brew', severity: 'success' })
+                    setRecoOpen(false)
+                }}
+            />
         </>
     )
 }
