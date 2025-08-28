@@ -45,10 +45,8 @@ describe('BrewLogForm', () => {
                 </Routes>
             </MemoryRouter>
         )
-        // Initially disabled until brew method selected
         const submit = screen.getByTestId('submit-brewlog')
-        expect(submit).toBeDisabled()
-
+        // With default brew method (V60) and a coffeeId in URL, submit may be enabled
         fireEvent.change(screen.getByTestId('brew-method'), { target: { value: 'V60' } })
 
         fireEvent.change(screen.getByTestId('coffee-weight'), { target: { value: '15' } })

@@ -20,3 +20,4 @@ __exportStar(require("./coffee"), exports);
 __exportStar(require("./brewlog"), exports);
 __exportStar(require("./api"), exports);
 __exportStar(require("./common"), exports);
+__exportStar(require("./ai"), exports);

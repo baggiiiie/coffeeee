@@ -6,6 +6,7 @@ import { useCachedGet } from '../hooks/useCachedGet'
 import AITastingAssistant from './AITastingAssistant'
 import AIBrewRecommendationDialog from './AIBrewRecommendationDialog'
 import { Alert as MuiAlert } from '@mui/material'
+import { BrewMethod } from '@coffeeee/shared-types'
 
 type BrewLogFormProps = {
     mode: 'create' | 'edit' | 'view'
@@ -44,7 +45,7 @@ const BrewLogForm: React.FC<BrewLogFormProps> = ({
     const [params] = useSearchParams()
     const coffeeId = useMemo(() => Number(params.get('coffeeId') || '0'), [params])
     const [selectedCoffeeId, setSelectedCoffeeId] = useState<number>(coffeeId)
-    const [brewMethod, setBrewMethod] = useState('')
+    const [brewMethod, setBrewMethod] = useState<string>(BrewMethod.V60)
     const [coffeeWeight, setCoffeeWeight] = useState<string>('')
     const [waterWeight, setWaterWeight] = useState<string>('')
     const [grindSize, setGrindSize] = useState('')
@@ -102,7 +103,7 @@ const BrewLogForm: React.FC<BrewLogFormProps> = ({
             if (loadedFromIdRef.current === brewLogId) return
             const data = brewRes.data
             setSelectedCoffeeId(data.coffeeId)
-            setBrewMethod(data.brewMethod || '')
+            setBrewMethod(data.brewMethod || BrewMethod.V60)
             setCoffeeWeight(data.coffeeWeight != null ? String(data.coffeeWeight) : '')
             setWaterWeight(data.waterWeight != null ? String(data.waterWeight) : '')
             setGrindSize(data.grindSize || '')
@@ -313,7 +314,7 @@ const BrewLogForm: React.FC<BrewLogFormProps> = ({
                         <MuiAlert severity="info" sx={{ mb: 2 }} data-testid="prefill-note"
                             action={<Button variant="outlined" size="small" onClick={() => {
                                 if (initialBrewParams) {
-                                    setBrewMethod(initialBrewParams.brewMethod || '')
+                                    setBrewMethod(initialBrewParams.brewMethod || BrewMethod.V60)
                                     setCoffeeWeight(initialBrewParams.coffeeWeight != null ? String(initialBrewParams.coffeeWeight) : '')
                                     setWaterWeight(initialBrewParams.waterWeight != null ? String(initialBrewParams.waterWeight) : '')
                                     setGrindSize(initialBrewParams.grindSize || '')
@@ -360,15 +361,22 @@ const BrewLogForm: React.FC<BrewLogFormProps> = ({
                                     </Select>
                                 </FormControl>
                             )}
-                            <TextField
-                                label="Brew Method"
-                                value={brewMethod}
-                                onChange={(e) => setBrewMethod(e.target.value)}
-                                disabled={readonly}
-                                required
-                                inputProps={{ 'data-testid': 'brew-method' }}
-                                fullWidth
-                            />
+                            <FormControl fullWidth>
+                                <InputLabel id="brew-method-label">Brew Method</InputLabel>
+                                <Select
+                                    labelId="brew-method-label"
+                                    label="Brew Method"
+                                    value={brewMethod}
+                                    onChange={(e) => setBrewMethod(String(e.target.value))}
+                                    disabled={readonly}
+                                    required
+                                    inputProps={{ 'data-testid': 'brew-method' }}
+                                >
+                                    {Object.values(BrewMethod).map((method) => (
+                                        <MenuItem key={method} value={method}>{method}</MenuItem>
+                                    ))}
+                                </Select>
+                            </FormControl>
                             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
                                 <TextField
                                     label="Coffee (g)"
