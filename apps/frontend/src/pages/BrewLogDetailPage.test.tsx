@@ -38,7 +38,7 @@ describe('BrewLogDetailPage', () => {
 
     await waitFor(() => expect(getSpy).toHaveBeenCalled())
     expect(await screen.findByTestId('brewlog-detail')).toBeInTheDocument()
-    expect(screen.getByText(/V60/)).toBeInTheDocument()
+    expect((screen.getByTestId('brew-method') as HTMLInputElement).value).toBe('V60')
 
     fireEvent.click(screen.getByTestId('edit-button'))
     const methodInput = await screen.findByTestId('brew-method')
@@ -48,6 +48,36 @@ describe('BrewLogDetailPage', () => {
     await waitFor(() => expect(putSpy).toHaveBeenCalled())
 
     getSpy.mockRestore()
+    putSpy.mockRestore()
+  })
+
+  it('does not send PUT on Update click; only on Save', async () => {
+    const sample2 = { ...sample, id: 77, coffeeId: 2 }
+    vi.spyOn(api, 'get').mockResolvedValueOnce({ data: sample2 })
+    const putSpy = vi.spyOn(api, 'put').mockResolvedValue({ data: sample })
+
+    render(
+      <MemoryRouter initialEntries={[`/brew-logs/${sample2.id}`]}>
+        <Routes>
+          <Route path="/brew-logs/:id" element={<BrewLogDetailPage />} />
+        </Routes>
+      </MemoryRouter>
+    )
+
+    // Wait for details to render then enter edit mode
+    expect(await screen.findByTestId('brew-method')).toBeInTheDocument()
+    fireEvent.click(screen.getByTestId('edit-button'))
+
+    // Ensure no PUT yet just by entering edit mode
+    await waitFor(() => expect(putSpy).not.toHaveBeenCalled())
+
+    // Make a change and save
+    const methodInput = await screen.findByTestId('brew-method')
+    fireEvent.change(methodInput, { target: { value: 'Espresso' } })
+    fireEvent.click(screen.getByTestId('save-edit'))
+
+    await waitFor(() => expect(putSpy).toHaveBeenCalled())
+
     putSpy.mockRestore()
   })
 
@@ -66,4 +96,3 @@ describe('BrewLogDetailPage', () => {
     getSpy.mockRestore()
   })
 })
-
