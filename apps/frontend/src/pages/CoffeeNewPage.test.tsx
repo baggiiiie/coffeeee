@@ -1,7 +1,8 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import CoffeeNewPage from './CoffeeNewPage'
 import { MemoryRouter } from 'react-router-dom'
 import api from '../utils/api'
+import { vi } from 'vitest'
 
 vi.mock('../utils/api', async () => {
     const actual = await vi.importActual<any>('../utils/api')
@@ -23,6 +24,12 @@ describe('CoffeeNewPage', () => {
             expect(spy).not.toHaveBeenCalled()
             spy.mockRestore()
         })
+        // Flush any timer-driven UI updates (e.g., Snackbar auto-hide)
+        vi.useFakeTimers()
+        await act(async () => {
+            vi.runAllTimers()
+        })
+        vi.useRealTimers()
     })
 
     it('submits successfully with required fields', async () => {
@@ -37,7 +44,12 @@ describe('CoffeeNewPage', () => {
         await waitFor(() => {
             expect(postSpy).toHaveBeenCalledWith('/api/v1/coffees', expect.objectContaining({ name: 'Test Coffee' }))
         })
+        // Run timers to cover delayed navigation and Snackbar auto-hide
+        vi.useFakeTimers()
+        await act(async () => {
+            vi.runAllTimers()
+        })
+        vi.useRealTimers()
         postSpy.mockRestore()
     })
 })
-
