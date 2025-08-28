@@ -105,7 +105,7 @@ func writeAuthError(w http.ResponseWriter, message string) {
 // LoggingMiddleware logs the requested URL and body
 func LoggingMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		log.Printf("<<<<<<< Requested URL: %s", r.URL.String())
+		log.Printf("<<<<<<< Requested URL: %s - %s", r.Method, r.URL.String())
 		bodyBytes, err := io.ReadAll(r.Body)
 		if err != nil {
 			log.Printf("Error reading body: %v", err)

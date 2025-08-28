@@ -1,6 +1,7 @@
 # The Coffee Companion
 
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/baggiiiie/coffeeee)
+
 A fullstack web application for coffee enthusiasts to track their brewing journey, log coffee experiences, and get AI-powered brewing recommendations.
 
 ## 🚀 Features
@@ -28,23 +29,27 @@ A fullstack web application for coffee enthusiasts to track their brewing journe
 ## 🛠️ Setup
 
 ### 1. Clone the repository
+
 ```bash
 git clone <repository-url>
 cd coffeeee
 ```
 
 ### 2. Install dependencies
+
 ```bash
 npm install
 ```
 
 ### 3. Environment setup
+
 ```bash
 cp .env.example .env
 # Edit .env with your configuration
 ```
 
 ### 4. Initialize database and run migrations
+
 ```bash
 # One-off legacy setup (optional)
 make db-setup
@@ -57,13 +62,15 @@ make db-migrate-down
 ```
 
 ### 5. Start development servers
+
 ```bash
 npm run dev
 ```
 
 This will start:
-- Backend server on http://localhost:8080
-- Frontend development server on http://localhost:3000
+
+- Backend server on <http://localhost:8080>
+- Frontend development server on <http://localhost:3000>
 
 ## 📁 Project Structure
 
@@ -96,16 +103,19 @@ npm run test:e2e
 ## 🚀 Deployment
 
 ### Development
+
 ```bash
 npm run dev
 ```
 
 ### Production Build
+
 ```bash
 npm run build
 ```
 
 ### Docker Deployment
+
 ```bash
 docker build -t coffeeee .
 docker run -p 8080:8080 coffeeee
