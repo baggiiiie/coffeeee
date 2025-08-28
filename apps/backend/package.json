@@ -1,7 +1,7 @@
 {
     "name": "@coffeeee/backend",
     "version": "1.0.0",
-    "description": "Go backend for Coffee Companion",
+    "description": "Go backend for Coffeeee",
     "scripts": {
         "dev": "go run cmd/server/main.go",
         "build": "go build -o coffeeee cmd/server/main.go",

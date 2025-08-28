@@ -9,7 +9,7 @@
 ## Background Context
 This project was initiated to address the problem that learning about specialty coffee is often a frustrating and intimidating experience. The current landscape of online resources is fragmented and lacks a structured, engaging learning path, which can cause enthusiasts to lose the joy of their hobby.
 
-The "Coffee Companion" app aims to solve this by providing a centralized, fun, and interactive platform for coffee education. This Product Requirements Document (PRD) will build upon the foundational Project Brief to define the specific functional and non-functional requirements for the development of the MVP.
+The "Coffeeee" app aims to solve this by providing a centralized, fun, and interactive platform for coffee education. This Product Requirements Document (PRD) will build upon the foundational Project Brief to define the specific functional and non-functional requirements for the development of the MVP.
 
 ## Change Log
 | Date       | Version | Description                | Author |

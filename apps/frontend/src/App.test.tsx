@@ -19,7 +19,7 @@ describe('App', () => {
     it('renders landing page content', () => {
         renderWithProviders(<App />)
         expect(
-            screen.getByRole('heading', { name: /welcome to coffee companion/i })
+            screen.getByRole('heading', { name: /welcome to coffeeee/i })
         ).toBeInTheDocument()
     })
 })

@@ -7,7 +7,7 @@ const LandingPage: React.FC = () => {
         <Container maxWidth="md">
             <Box sx={{ textAlign: 'center', py: 8 }}>
                 <Typography variant="h2" component="h1" gutterBottom>
-                    Welcome to Coffee Companion
+                    Welcome to Coffeeee
                 </Typography>
 
                 <Typography variant="h5" color="text.secondary" paragraph>

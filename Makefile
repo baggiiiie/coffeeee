@@ -2,7 +2,7 @@
 
 # Default target
 help:
-	@echo "Coffee Companion - Development Commands"
+	@echo "Coffeeee - Development Commands"
 	@echo "======================================"
 	@echo "install     - Install all dependencies"
 	@echo "dev         - Start both backend and frontend in development mode"

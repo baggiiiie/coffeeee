@@ -1,4 +1,4 @@
--- Initial schema migration for Coffee Companion
+-- Initial schema migration for Coffeeee
 -- Migration: 001_initial_schema.sql
 
 -- Users table

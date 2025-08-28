@@ -1,4 +1,4 @@
-# The Coffee Companion Product Requirements Document (PRD)
+# The Coffeeee Product Requirements Document (PRD)
 
 ## Goals and Background Context
 
@@ -11,7 +11,7 @@
 ### Background Context
 This project was initiated to address the problem that learning about specialty coffee is often a frustrating and intimidating experience. The current landscape of online resources is fragmented and lacks a structured, engaging learning path, which can cause enthusiasts to lose the joy of their hobby.
 
-The "Coffee Companion" app aims to solve this by providing a centralized, fun, and interactive platform for coffee education. This Product Requirements Document (PRD) will build upon the foundational Project Brief to define the specific functional and non-functional requirements for the development of the MVP.
+The "Coffeeee" app aims to solve this by providing a centralized, fun, and interactive platform for coffee education. This Product Requirements Document (PRD) will build upon the foundational Project Brief to define the specific functional and non-functional requirements for the development of the MVP.
 
 ### Change Log
 | Date       | Version | Description                | Author |
@@ -224,7 +224,7 @@ This is a conceptual list of the essential screens needed for the MVP:
 
 ## Epic 3: Learning & Guidance
 
-**Expanded Goal:** The goal of this epic is to build the core educational and "smart" features of the application. By the end of this epic, users will not only be able to log their data but will also receive guidance on how to brew better coffee and learn from structured content, fulfilling our promise of being a true coffee companion.
+**Expanded Goal:** The goal of this epic is to build the core educational and "smart" features of the application. By the end of this epic, users will not only be able to log their data but will also receive guidance on how to brew better coffee and learn from structured content, fulfilling our promise of being a true Coffeeee.
 
 ---
 

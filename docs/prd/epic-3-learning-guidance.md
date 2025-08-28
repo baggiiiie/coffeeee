@@ -1,6 +1,6 @@
 # Epic 3: Learning & Guidance
 
-**Expanded Goal:** The goal of this epic is to build the core educational and "smart" features of the application. By the end of this epic, users will not only be able to log their data but will also receive guidance on how to brew better coffee and learn from structured content, fulfilling our promise of being a true coffee companion.
+**Expanded Goal:** The goal of this epic is to build the core educational and "smart" features of the application. By the end of this epic, users will not only be able to log their data but will also receive guidance on how to brew better coffee and learn from structured content, fulfilling our promise of being a true Coffeeee.
 
 ---
 

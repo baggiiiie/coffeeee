@@ -1,4 +1,4 @@
-# Project Brief: The Coffee Companion
+# Project Brief: The Coffeeee
 
 ## Executive Summary
 

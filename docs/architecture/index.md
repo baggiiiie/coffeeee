@@ -1,8 +1,8 @@
-# The Coffee Companion Fullstack Architecture Document
+# The Coffeeee Fullstack Architecture Document
 
 ## Table of Contents
 
-- [The Coffee Companion Fullstack Architecture Document](#table-of-contents)
+- [The Coffeeee Fullstack Architecture Document](#table-of-contents)
   - [Introduction](./introduction.md)
     - [Starter Template or Existing Project](./introduction.md#starter-template-or-existing-project)
     - [Change Log](./introduction.md#change-log)

@@ -14,7 +14,7 @@ const Header: React.FC = () => {
                     textDecoration: 'none',
                     color: 'inherit'
                 }}>
-                    Coffee Companion
+                    Coffeeee
                 </Typography>
 
                 <Box sx={{ display: 'flex', gap: 2 }}>
